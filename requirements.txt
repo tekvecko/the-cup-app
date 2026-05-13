@@ -1,0 +1,5 @@
+flask
+gunicorn
+requests
+fpdf2==2.7.4
+qrcode
