@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/flask/app.py", line 1536, in __call__
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/flask/app.py", line 1514, in wsgi_app
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+  File "/data/data/com.termux/files/home/the_cup_project/app.py", line 623, in index
+  File "/data/data/com.termux/files/home/the_cup_project/app.py", line 582, in render_ui
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/flask/templating.py", line 162, in render_template_string
+  File "/data/data/com.termux/files/usr/lib/python3.13/site-packages/jinja2/environment.py", line 1111, in from_string
