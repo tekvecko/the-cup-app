@@ -1270,3 +1270,63 @@ def api_generate_team():
         return jsonify({'status': 'success', 'team_name': team_name, 'logo_url': logo_url}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ==========================================
+# 9. AI API BRIDGE (AUTONOMOUS CONTROL)
+# ==========================================
+def require_ai_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        key = request.headers.get('X-AI-API-KEY')
+        if not key or key != os.getenv('AI_API_KEY', 'skynet_v1'):
+            return jsonify({'error': 'Neautorizovaný přístup AI agenta'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/api/v1/status', methods=['GET'])
+@require_ai_key
+def api_status():
+    return jsonify({
+        'status': 'online',
+        'timestamp': datetime.now().isoformat(),
+        'db_size_kb': round(os.path.getsize(DB_PATH) / 1024, 2) if os.path.exists(DB_PATH) else 0
+    })
+
+@app.route('/api/v1/tournaments/create', methods=['POST'])
+@require_ai_key
+def api_create_tournament():
+    data = request.json
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                'INSERT INTO tournaments (user_id, name, start_date, max_teams, join_token) VALUES (1, ?, ?, ?, ?)',
+                (data['name'], data.get('start_date', datetime.now().strftime('%Y-%m-%d')), data.get('max_teams', 8), uuid.uuid4().hex[:12])
+            )
+            conn.commit()
+            return jsonify({'status': 'success', 'tournament_id': cur.lastrowid}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/v1/teams/generate', methods=['POST'])
+@require_ai_key
+def api_generate_team():
+    data = request.json
+    team_name = data.get('team_name')
+    colors = data.get('colors', 'navy, white')
+    if not team_name: return jsonify({'error': 'Chybí team_name'}), 400
+    
+    try:
+        prompt = build_prompt(team_name, "clean", colors)
+        urls = pixazo_generate(prompt, width=1024, height=1024)
+        symbol = save_url(urls[0])
+        final_logo = compose_logo(symbol, team_name)
+        logo_url = f"/static/generated_logos/{final_logo}"
+        
+        with get_db() as conn:
+            conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (1, ?, ?, ?, ?)', 
+                         (team_name, logo_url, '#0f172a', team_name[:4].upper()))
+            conn.commit()
+        return jsonify({'status': 'success', 'team_name': team_name, 'logo_url': logo_url}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
