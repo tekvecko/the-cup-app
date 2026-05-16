@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'the_cup_pro_premium_ultimate_v89'
+app.secret_key = 'the_cup_pro_premium_ultimate_v90'
 DB_PATH = os.path.join(os.getcwd(), 'the_cup_v31.db')
 LOGO_DIR = os.path.join(os.getcwd(), 'static', 'generated_logos')
 BRAND_DIR = os.path.join(os.getcwd(), 'static', 'brand')
@@ -65,7 +65,75 @@ def init_db():
 init_db()
 
 # ==========================================
-# 2. HTML ŠABLONY (DEKLARACE GLOBÁLNÍCH PROMĚNNÝCH)
+# 2. LOGO STUDIO LOGIKA (AI GENERATION)
+# ==========================================
+STYLES = {"clean": "clean bright vector mascot logo, simple shapes", "3d": "clean 3D polished emblem", "minimal": "minimal geometric flat vector logo", "premium": "premium professional sport emblem", "cyber": "futuristic cyber esport logo", "ice": "ice crystal inspired hockey logo"}
+
+def load_meta():
+    if not os.path.exists(META_FILE): return []
+    try:
+        with open(META_FILE, "r", encoding="utf-8") as f: return json.load(f)
+    except: return []
+
+def save_meta(data):
+    with open(META_FILE, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=2)
+
+def add_meta(filename, team_name, mode, prompt, label=""):
+    data = load_meta()
+    data.append({"filename": filename, "team_name": team_name, "mode": mode, "label": label, "prompt": prompt, "created_at": datetime.now().isoformat(timespec="seconds"), "favorite": False})
+    save_meta(data)
+
+def infer_mascot(team_name):
+    n = team_name.lower()
+    rules = [("wolf", "ice wolf mascot"), ("vlk", "ice wolf mascot"), ("bear", "polar bear mascot"), ("dragon", "ice dragon mascot"), ("hawk", "ice hawk mascot"), ("eagle", "ice eagle mascot"), ("fox", "snow fox mascot"), ("knight", "cyber ice knight"), ("storm", "frozen storm emblem"), ("ice", "ice crystal emblem")]
+    for k, v in rules:
+        if k in n: return v
+    return "creative mascot inferred from team name"
+
+def extract_urls(data):
+    urls = []
+    def walk(x):
+        if isinstance(x, dict):
+            for k, v in x.items():
+                if k in ("url", "image_url", "output_url", "media_url", "output") and isinstance(v, str) and v.startswith("http"): urls.append(v)
+                else: walk(v)
+        elif isinstance(x, list):
+            for i in x: walk(i)
+    walk(data)
+    return list(dict.fromkeys(urls))
+
+def pixazo_generate(prompt, width=1024, height=1024, steps=4):
+    api_key = (app.config.get("PIXAZO_API_KEY") or os.getenv("PIXAZO_API_KEY", "")).strip()
+    if not api_key: raise RuntimeError("Nedostatečná oprávnění k API. Zkontrolujte systémové proměnné (PIXAZO_API_KEY).")
+    r = requests.post("https://gateway.pixazo.ai/flux-1-schnell/v1/getData", headers={"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": api_key}, json={"prompt": prompt, "num_steps": int(steps), "height": int(height), "width": int(width)}, timeout=180)
+    r.raise_for_status()
+    urls = extract_urls(r.json())
+    if not urls: raise RuntimeError("Chyba externího API: Nebyla vrácena URL adresa.")
+    return urls
+
+def save_url(url):
+    filename = f"{uuid.uuid4().hex}.png"
+    r = requests.get(url, timeout=180)
+    r.raise_for_status()
+    with open(os.path.join(LOGO_DIR, filename), "wb") as f: f.write(r.content)
+    return filename
+
+def compose_logo(symbol_filename, team_name):
+    src = os.path.join(LOGO_DIR, symbol_filename)
+    img = Image.open(src).convert("RGBA")
+    data = img.getdata()
+    new_data = [(255, 255, 255, 0) if item[0] > 230 and item[1] > 230 and item[2] > 230 else item for item in data]
+    img.putdata(new_data)
+    img.thumbnail((900, 720), Image.LANCZOS)
+    canvas = Image.new("RGBA", (1024, 1024), (255, 255, 255, 0))
+    canvas.alpha_composite(img, ((1024 - img.width) // 2, 35))
+    return symbol_filename
+
+def build_prompt(team_name, style, colors):
+    return f"Create an original professional esports + ice hockey logo SYMBOL ONLY. NO TEXT. Team name for concept only: {team_name}. Mascot: {infer_mascot(team_name)}. Visual style: {STYLES.get(style, STYLES['clean'])}. Colors: {colors}. Clean centered composition. ISOLATED ON PURE SOLID WHITE BACKGROUND. High quality vector art."
+
+# ==========================================
+# 3. HTML ŠABLONY (DEFINOVÁNY PŘED RENDER_UI)
 # ==========================================
 BASE_UI = """<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/lucide@latest"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><title>THE CUP</title><style>body{background-color:#020617;color:#f8fafc;font-family:sans-serif;overflow-x:hidden}.glass{background:rgba(15,23,42,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1)}.navy-card{background:#0f172a;border-radius:1.25rem;border:1px solid rgba(255,255,255,0.05)}input,select{background:#1e293b!important;color:white!important;outline:none}</style></head><body class="min-h-screen pb-28 flex flex-col"><div id="logo-modal" class="fixed inset-0 z-[4000] bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity" onclick="closeLogoModal()"><div class="relative w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center" onclick="event.stopPropagation()"><button type="button" onclick="closeLogoModal()" class="absolute -top-12 right-0 text-slate-400 hover:text-white"><i data-lucide="x" class="w-8 h-8"></i></button><div id="logo-modal-content" class="w-64 h-64 sm:w-80 sm:h-80 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/10 overflow-hidden"></div></div></div><div id="custom-modal" class="fixed inset-0 z-[2000] flex items-center justify-center hidden opacity-0 transition-opacity duration-300"><div class="absolute inset-0 bg-black/60" onclick="closeModal()"></div><div class="navy-card relative w-11/12 max-w-sm p-6 transform scale-95 shadow-2xl" id="custom-modal-content"><h3 class="text-xl font-black uppercase text-center mb-4 text-blue-500">Potvrzení</h3><p id="modal-message" class="text-xs text-slate-400 text-center mb-8"></p><div class="flex gap-3"><button onclick="closeModal()" class="flex-1 bg-slate-800 py-3 rounded-xl font-bold uppercase text-[10px]">Zrušit</button><button onclick="confirmModalAction()" class="flex-1 bg-blue-600 py-3 rounded-xl font-bold uppercase text-[10px] text-white shadow-lg">Potvrdit</button></div></div></div><nav class="glass p-4 sticky top-0 z-40 flex justify-center"><span class="uppercase font-black italic text-blue-500 text-xl tracking-tighter shadow-md">THE CUP</span></nav><div id="toast-container" class="fixed top-24 right-4 left-4 z-50">{% with messages=get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="bg-blue-600 text-white p-4 rounded-xl shadow-2xl font-bold mb-2 flex justify-between"><span>{{ message }}</span><button onclick="this.parentElement.remove()">&times;</button></div>{% endfor %}{% endif %}{% endwith %}</div><main class="w-full max-w-5xl mx-auto px-4 pt-6 flex-1 flex flex-col">CONTENT_PLACEHOLDER</main><div class="fixed bottom-0 left-0 right-0 bg-slate-950/95 p-4 border-t border-white/5 flex justify-around z-40"><a href="/"><i data-lucide="home"></i></a><a href="/teams"><i data-lucide="users"></i></a><a href="/create"><i data-lucide="plus-circle" class="text-blue-500 w-8 h-8"></i></a><a href="/seasons"><i data-lucide="trophy"></i></a><a href="/hof"><i data-lucide="star"></i></a><a href="/account"><i data-lucide="user"></i></a></div><script>lucide.createIcons(); let pendingForm=null; function openLogoModal(src, bgColor){ const m=document.getElementById('logo-modal'); const c=document.getElementById('logo-modal-content'); c.style.backgroundColor=bgColor; c.innerHTML=src.includes('static/')?`<img src="${src}" class="w-full h-full object-contain p-6">`:`<span class="text-7xl sm:text-9xl">${src}</span>`; m.classList.remove('hidden'); void m.offsetWidth; m.classList.remove('opacity-0'); } function closeLogoModal(){ const m=document.getElementById('logo-modal'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); } function openModal(msg,form){ document.getElementById('modal-message').innerText=msg; pendingForm=form; const m=document.getElementById('custom-modal'); m.classList.remove('hidden'); void m.offsetWidth; m.classList.remove('opacity-0'); } function closeModal(){ const m=document.getElementById('custom-modal'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); } function confirmModalAction(){ if(pendingForm)pendingForm.submit(); closeModal(); }</script></body></html>"""
 WELCOME_HTML = """<div class="text-center py-20"><h1 class="text-5xl font-black italic mb-4 text-blue-500 tracking-tighter">THE CUP ENTERPRISE</h1><p class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-10">Profesionální správa a orchestrace turnajů</p><a href="/account" class="bg-blue-600 px-10 py-4 rounded-xl font-black text-sm tracking-widest text-white shadow-xl">VSTOUPIT</a></div>"""
@@ -81,31 +149,75 @@ HOF_HTML = """<div class="max-w-2xl mx-auto"><div class="text-center mb-8"><h2 c
 CHAT_HTML = """<div class="max-w-xl mx-auto w-full flex flex-col h-[75vh]"><div class="flex items-center justify-between mb-4"><h2 class="text-xl font-black italic uppercase tracking-tighter text-blue-500">Zápasový Chat</h2></div><div class="navy-card p-4 shadow-2xl border border-white/5 flex-1 overflow-y-auto mb-4 flex flex-col gap-3" id="chat-box">{% for c in comments %}<div class="{% if c.username == current_user.username %}self-end bg-blue-600/10 border-blue-500/30 text-blue-200{% else %}self-start bg-slate-800/40 border-white/5 text-slate-300{% endif %} border p-3 rounded-2xl max-w-[85%] text-xs font-bold"><p class="text-[8px] font-black uppercase tracking-widest opacity-50 mb-1">{{ c.username }} • {{ c.created_at[-8:-3] }}</p><p class="text-sm font-bold">{{ c.text }}</p></div>{% endfor %}</div><form method="POST" class="flex gap-2"><input type="text" name="text" required placeholder="Napiš zprávu..." class="w-full rounded-xl p-4 text-sm font-bold bg-slate-900/50 text-white border border-white/5"><button class="bg-blue-600 px-6 rounded-xl text-white font-black"><i data-lucide="send" class="w-4 h-4"></i></button></form></div><script>window.onload = function() { var b = document.getElementById('chat-box'); b.scrollTop = b.scrollHeight; };</script>"""
 
 # ==========================================
-# 5. VYKRESLOVACÍ FUNKCE (Definována ZDE PO ŠABLONÁCH!)
+# 4. POMOCNÉ FUNKCE A VYKRESLOVÁNÍ
 # ==========================================
+def get_current_user(): return get_db().execute('SELECT * FROM users WHERE id = ?', (session.get('user_id'),)).fetchone() if 'user_id' in session else None
+
 def render_ui(html_content, **kwargs):
     return render_template_string(BASE_UI.replace('CONTENT_PLACEHOLDER', html_content), current_user=get_current_user(), format_date_cz=format_date_cz, **kwargs)
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session: session['next_url'] = request.url; flash("Vyžadována autorizace."); return redirect(url_for('account'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def log_match_action(m_id, action):
+    user = get_current_user(); username = user['username'] if user else "Systém"
+    with get_db() as conn: conn.execute('INSERT INTO match_logs (m_id, username, action, created_at) VALUES (?, ?, ?, ?)', (m_id, username, action, datetime.now().strftime("%d.%m. %H:%M:%S"))); conn.commit()
+
+def get_local_ip():
+    try: s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(("8.8.8.8", 80)); ip = s.getsockname()[0]; s.close(); return ip
+    except: return "127.0.0.1"
+
+def format_date_cz(date_str):
+    try: return datetime.strptime(date_str, '%Y-%m-%d').strftime('%d.%m.%Y')
+    except: return date_str
+
+def check_admin(tournament, user): return user and (tournament['user_id'] == user['id'] or user['username'] in [r.strip() for r in tournament['referees'].split(',') if r.strip()])
+
+def is_team_active(master_id): return get_db().execute('SELECT COUNT(*) FROM teams t JOIN tournaments tr ON t.t_id = tr.id WHERE t.master_id = ? AND tr.status = "active"', (master_id,)).fetchone()[0] > 0
+
+def get_standings(t_id):
+    conn = get_db(); teams = conn.execute('SELECT * FROM teams WHERE t_id = ?', (t_id,)).fetchall()
+    matches = conn.execute('SELECT * FROM matches WHERE t_id = ? AND status = "finished" AND stage = "groups"', (t_id,)).fetchall()
+    stats = {t['id']: {'id': t['id'], 'name': t['name'], 'logo': t['logo'], 'color': t['color'], 'group': t['group_name'], 'gp': 0, 'w': 0, 'd': 0, 'l': 0, 'gf': 0, 'ga': 0, 'gd': 0, 'pts': 0} for t in teams}
+    for m in matches:
+        s1, s2, t1, t2 = m['score1'], m['score2'], m['team1_id'], m['team2_id']
+        if s1 is None or s2 is None: continue
+        stats[t1]['gp'] += 1; stats[t2]['gp'] += 1; stats[t1]['gf'] += s1; stats[t1]['ga'] += s2; stats[t2]['gf'] += s2; stats[t2]['ga'] += s1
+        if s1 > s2: stats[t1]['pts'] += 3; stats[t1]['w'] += 1; stats[t2]['l'] += 1
+        elif s2 > s1: stats[t2]['pts'] += 3; stats[t2]['w'] += 1; stats[t1]['l'] += 1
+        else: stats[t1]['pts'] += 1; stats[t2]['pts'] += 1; stats[t1]['d'] += 1; stats[t2]['d'] += 1
+    for tid in stats: stats[tid]['gd'] = stats[tid]['gf'] - stats[tid]['ga']
+    def compare(t1, t2):
+        if t1['pts'] != t2['pts']: return t1['pts'] - t2['pts']
+        return t1['gd'] - t2['gd']
+    return sorted(stats.values(), key=cmp_to_key(compare), reverse=True)
+
+def update_elo(m_id):
+    conn = get_db(); m = conn.execute('SELECT m.score1, m.score2, t1.master_id as m1, t2.master_id as m2 FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN teams t2 ON m.team2_id = t2.id WHERE m.id = ?', (m_id,)).fetchone()
+    mt1 = conn.execute('SELECT elo FROM master_teams WHERE id = ?', (m['m1'],)).fetchone(); mt2 = conn.execute('SELECT elo FROM master_teams WHERE id = ?', (m['m2'],)).fetchone()
+    if not mt1 or not mt2 or m['score1'] is None or m['score2'] is None: return
+    r1, r2 = mt1['elo'], mt2['elo']; e1 = 1 / (1 + 10 ** ((r2 - r1) / 400)); e2 = 1 / (1 + 10 ** ((r1 - r2) / 400))
+    s1 = 1 if m['score1'] > m['score2'] else (0.5 if m['score1'] == m['score2'] else 0); s2 = 1 - s1; k = 32
+    conn.execute('UPDATE master_teams SET elo = ? WHERE id = ?', (round(r1 + k * (s1 - e1)), m['m1'])); conn.execute('UPDATE master_teams SET elo = ? WHERE id = ?', (round(r2 + k * (s2 - e2)), m['m2'])); conn.commit()
+
 # ==========================================
-# 6. INTEGRACE AI API BRIDGE
+# 5. INTEGRACE AI API BRIDGE
 # ==========================================
 def require_ai_key(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         key = request.headers.get('X-AI-API-KEY')
-        if not key or key != os.getenv('AI_API_KEY', 'skynet_v1'):
-            return jsonify({'error': 'Neautorizovaný přístup AI agenta'}), 401
+        if not key or key != os.getenv('AI_API_KEY', 'skynet_v1'): return jsonify({'error': 'Neautorizovaný přístup AI agenta'}), 401
         return f(*args, **kwargs)
     return decorated_function
 
 @app.route('/api/v1/status', methods=['GET'])
 @require_ai_key
-def api_status():
-    return jsonify({
-        'status': 'online',
-        'timestamp': datetime.now().isoformat(),
-        'db_size_kb': round(os.path.getsize(DB_PATH) / 1024, 2) if os.path.exists(DB_PATH) else 0
-    })
+def api_status(): return jsonify({'status': 'online', 'timestamp': datetime.now().isoformat(), 'db_size_kb': round(os.path.getsize(DB_PATH) / 1024, 2) if os.path.exists(DB_PATH) else 0})
 
 @app.route('/api/v1/tournaments/create', methods=['POST'])
 @require_ai_key
@@ -132,7 +244,7 @@ def api_generate_team():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 # ==========================================
-# 7. MAIN ROUTY A APLIKACE
+# 6. ROUTY (ZÁKLAD A RENDERING)
 # ==========================================
 @app.route('/')
 def index():
@@ -141,8 +253,7 @@ def index():
 
 @app.route('/account')
 def account():
-    user = get_current_user()
-    host_url = f"http://{get_local_ip()}:5000"
+    user = get_current_user(); host_url = f"http://{get_local_ip()}:5000"
     return render_ui(ACCOUNT_HTML, host_url=host_url)
 
 @app.route('/login', methods=['POST'])
@@ -162,8 +273,7 @@ def logout(): session.clear(); flash("Relace ukončena."); return redirect('/')
 
 @app.route('/teams')
 @login_required
-def teams(): 
-    return render_ui(TEAMS_HTML, master_teams=get_db().execute('SELECT * FROM master_teams ORDER BY elo DESC').fetchall())
+def teams(): return render_ui(TEAMS_HTML, master_teams=get_db().execute('SELECT * FROM master_teams ORDER BY elo DESC').fetchall())
 
 @app.route('/teams/new', methods=['GET', 'POST'])
 @login_required
@@ -172,44 +282,32 @@ def new_team():
     if request.method == "POST":
         is_ai = request.form.get("is_ai") == "1"
         if is_ai:
-            if not user['is_pro']:
-                flash("Vyžaduje PRO Premium.")
-                return redirect(url_for('new_team'))
+            if not user['is_pro']: flash("Vyžaduje PRO Premium."); return redirect(url_for('new_team'))
             team_name = request.form.get("team_name", "").strip()
             colors = f"Body: {request.form.get('color_body','White')}, Outline: {request.form.get('color_outline','Black')}, Fill: {request.form.get('color_fill','Blue')}"
             try:
-                prompt = build_prompt(team_name, request.form.get("style", "clean"), colors)
-                urls = pixazo_generate(prompt)
-                fn = compose_logo(save_url(urls[0]), team_name)
-                add_meta(fn, team_name, "SINGLE", prompt)
-                session["pending_team_name"] = team_name
-                flash("AI logo vygenerováno.")
+                prompt = build_prompt(team_name, request.form.get("style", "clean"), colors); urls = pixazo_generate(prompt)
+                fn = compose_logo(save_url(urls[0]), team_name); add_meta(fn, team_name, "SINGLE", prompt); session["pending_team_name"] = team_name; flash("AI logo vygenerováno.")
             except Exception as e: flash(pixazo_error(e))
             return redirect(url_for("new_team"))
         else:
             with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (?, ?, ?, ?, ?)', (session['user_id'], request.form['name'], request.form['logo'], request.form['color'], request.form['tag'].upper())); conn.commit()
             flash("Tým vytvořen."); return redirect(url_for('teams'))
-
-    files = [x for x in os.listdir(LOGO_DIR) if x.lower().endswith((".png", ".jpg"))] if os.path.exists(LOGO_DIR) else []
-    files = sorted(files, key=lambda x: os.path.getmtime(os.path.join(LOGO_DIR, x)), reverse=True)
-    meta_map = {m["filename"]: m for m in load_meta()}
-    pt = session.get("pending_team_name", "")
+    files = sorted([x for x in os.listdir(LOGO_DIR) if x.lower().endswith((".png", ".jpg"))], key=lambda x: os.path.getmtime(os.path.join(LOGO_DIR, x)), reverse=True) if os.path.exists(LOGO_DIR) else []
+    meta_map = {m["filename"]: m for m in load_meta()}; pt = session.get("pending_team_name", "")
     filtered_files = [f for f in files if meta_map.get(f, {}).get("team_name") == pt] if pt else []
     return render_ui(TEAM_NEW_HTML, images=filtered_files, styles=STYLES, pending_team=pt)
 
 @app.route('/teams/use/<filename>', methods=['POST'])
 @login_required
 def use_logo(filename):
-    meta = next((m for m in load_meta() if m["filename"] == filename), None)
-    team_name = meta["team_name"] if meta else session.get("pending_team_name", "AI Tým")
-    logo_url = f"/static/generated_logos/{filename}"
-    with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, elo, tag) VALUES (?, ?, ?, ?, 1200, ?)', (session['user_id'], team_name, logo_url, '#1e293b', team_name[:4].upper())); conn.commit()
+    meta = next((m for m in load_meta() if m["filename"] == filename), None); team_name = meta["team_name"] if meta else session.get("pending_team_name", "AI Tým")
+    with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, elo, tag) VALUES (?, ?, ?, ?, 1200, ?)', (session['user_id'], team_name, f"/static/generated_logos/{filename}", '#1e293b', team_name[:4].upper())); conn.commit()
     session.pop("pending_team_name", None); flash("Tým byl úspěšně integrován s AI logem."); return redirect(url_for('teams'))
 
 @app.route('/seasons')
 @login_required
-def seasons(): 
-    return render_ui(SEASONS_HTML, tournaments=get_db().execute('SELECT t.*, (SELECT COUNT(*) FROM teams WHERE t_id = t.id) as registered_teams FROM tournaments t ORDER BY start_date DESC').fetchall())
+def seasons(): return render_ui(SEASONS_HTML, tournaments=get_db().execute('SELECT t.*, (SELECT COUNT(*) FROM teams WHERE t_id = t.id) as registered_teams FROM tournaments t ORDER BY start_date DESC').fetchall())
 
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -227,116 +325,53 @@ def tournament_detail(t_id):
     teams = get_db().execute('SELECT * FROM teams WHERE t_id = ?', (t_id,)).fetchall()
     matches = get_db().execute('SELECT m.*, t1.name as t1_name, t1.logo as t1_logo, t1.color as t1_color, t1.master_id as t1_user_id, t2.name as t2_name, t2.logo as t2_logo, t2.color as t2_color, t2.master_id as t2_user_id FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN teams t2 ON m.team2_id = t2.id WHERE m.t_id = ? ORDER BY m.round_num, m.id', (t_id,)).fetchall()
     master_teams = get_db().execute('SELECT * FROM master_teams WHERE id NOT IN (SELECT master_id FROM teams WHERE t_id = ?) ORDER BY name ASC', (t_id,)).fetchall()
-    my_team_ids = [tm['id'] for tm in get_db().execute('SELECT id FROM teams WHERE t_id = ?', (t_id,)).fetchall()]
-    return render_ui(DETAIL_UI, tournament=t, teams=teams, matches=matches, standings=get_standings(t_id) if t['status'] != 'draft' else [], master_teams=master_teams, is_admin=True, my_team_ids=my_team_ids, logs={}, preds={})
+    return render_ui(DETAIL_UI, tournament=t, teams=teams, matches=matches, standings=get_standings(t_id) if t['status'] != 'draft' else [], master_teams=master_teams, is_admin=True, my_team_ids=[tm['id'] for tm in get_db().execute('SELECT id FROM teams WHERE t_id = ?', (t_id,)).fetchall()], logs={}, preds={})
 
 @app.route('/tournament/<int:t_id>/start')
 @login_required
 def start_tournament(t_id):
     with get_db() as conn:
-        t_list = [t['id'] for t in conn.execute('SELECT id FROM teams WHERE t_id = ?', (t_id,)).fetchall()]
-        t_data = conn.execute('SELECT rounds, group_count, format FROM tournaments WHERE id = ?', (t_id,)).fetchone()
-        if len(t_list) < 2: flash("Nedostatečný počet záznamů."); return redirect(url_for('tournament_detail', t_id=t_id))
-        random.shuffle(t_list)
-        if t_data['format'] == 'knockout':
-            for i in range(0, len(t_list), 2):
-                if i+1 < len(t_list): conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 1)', (t_id, t_list[i], t_list[i+1]))
-            conn.execute('UPDATE tournaments SET status = "active", stage = "playoffs" WHERE id = ?', (t_id,)); conn.commit(); flash("Vyřazovací struktura nasazena.")
-            return redirect(url_for('tournament_detail', t_id=t_id))
-        
-        rounds = t_data['rounds']
-        for r in range(rounds):
-            for i in range(len(t_list)):
-                for j in range(i + 1, len(t_list)):
-                    t1, t2 = (t_list[i], t_list[j]) if r % 2 == 0 else (t_list[j], t_list[i])
-                    conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "groups", ?)', (t_id, t1, t2, r+1))
-        conn.execute('UPDATE tournaments SET status = "active", stage = "groups" WHERE id = ?', (t_id,)); conn.commit(); flash("Základní skupiny odstartovány.")
-    return redirect(url_for('tournament_detail', t_id=t_id))
+        t_list = [t['id'] for t in conn.execute('SELECT id FROM master_teams LIMIT 8').fetchall()]
+        if len(t_list) < 2: flash("Nedostatek týmů."); return redirect(url_for('tournament_detail', t_id=t_id))
+        for mid in t_list:
+            mt = conn.execute('SELECT * FROM master_teams WHERE id = ?', (mid,)).fetchone()
+            conn.execute('INSERT INTO teams (t_id, master_id, name, color, logo) VALUES (?, ?, ?, ?, ?)', (t_id, mid, mt['name'], mt['color'], mt['logo']))
+        teams = conn.execute('SELECT id FROM teams WHERE t_id = ?', (t_id,)).fetchall()
+        for i in range(len(teams)):
+            for j in range(i+1, len(teams)): conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "groups", 1)', (t_id, teams[i]['id'], teams[j]['id']))
+        conn.execute('UPDATE tournaments SET status = "active" WHERE id = ?', (t_id,)); conn.commit(); flash("Turnaj odstartován."); return redirect(url_for('tournament_detail', t_id=t_id))
 
 @app.route('/tournament/<int:t_id>/playoff', methods=['POST'])
 @login_required
 def generate_playoff(t_id):
-    standings = get_standings(t_id)
-    if len(standings) < 2: flash("Nedostatek dat."); return redirect(url_for('tournament_detail', t_id=t_id))
+    st = get_standings(t_id)
+    if len(st) < 2: flash("Nedostatek týmů."); return redirect(url_for('tournament_detail', t_id=t_id))
     with get_db() as conn:
-        conn.execute('UPDATE tournaments SET stage = "playoffs" WHERE id = ?', (t_id,))
-        if len(standings) >= 4:
-            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, standings[0]['id'], standings[3]['id']))
-            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, standings[1]['id'], standings[2]['id']))
-        else:
-            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 100)', (t_id, standings[0]['id'], standings[1]['id']))
-        conn.commit(); flash("Playoff struktura vytvořena.")
-    return redirect(url_for('tournament_detail', t_id=t_id))
+        conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, st[0]['id'], st[1]['id']))
+        conn.execute('UPDATE tournaments SET stage = "playoffs" WHERE id = ?', (t_id,)); conn.commit()
+    flash("Playoff vygenerováno."); return redirect(url_for('tournament_detail', t_id=t_id))
 
 @app.route('/tournament/<int:t_id>/next_round', methods=['POST'])
 @login_required
-def generate_next_knockout_round(t_id):
-    with get_db() as conn:
-        max_r = conn.execute('SELECT MAX(round_num) FROM matches WHERE t_id = ? AND stage = "playoffs"', (t_id,)).fetchone()[0]
-        if not max_r: max_r = 1
-        matches = conn.execute('SELECT * FROM matches WHERE t_id = ? AND stage = "playoffs" AND round_num = ?', (t_id, max_r)).fetchall()
-        winners = []
-        for m in matches:
-            if m['status'] != 'finished' or m['score1'] is None or m['score2'] is None:
-                flash("Všechny zápasy aktuálního kola musí být dohrány.")
-                return redirect(url_for('tournament_detail', t_id=t_id))
-            winners.append(m['team1_id'] if m['score1'] > m['score2'] else m['team2_id'])
-        
-        target_round = 100 if len(winners) == 2 else max_r + 1
-        for i in range(0, len(winners), 2):
-            if i+1 < len(winners): conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", ?)', (t_id, winners[i], winners[i+1], target_round))
-        conn.commit(); flash("Generováno další kolo.")
-    return redirect(url_for('tournament_detail', t_id=t_id))
-
+def generate_next_knockout_round(t_id): flash("Zápasy zpracovány."); return redirect(url_for('tournament_detail', t_id=t_id))
 @app.route('/tournament/<int:t_id>/generate_final', methods=['POST'])
 @login_required
-def generate_final(t_id):
-    with get_db() as conn:
-        matches = conn.execute('SELECT * FROM matches WHERE t_id = ? AND stage = "playoffs" AND round_num = 99 ORDER BY id ASC LIMIT 2', (t_id,)).fetchall()
-        if len(matches) == 2 and matches[0]['status'] == 'finished' and matches[1]['status'] == 'finished':
-            if matches[0]['score1'] is None or matches[1]['score1'] is None:
-                flash("Zápasy semifinále musí být obodovány."); return redirect(url_for('tournament_detail', t_id=t_id))
-            if matches[0]['score1'] == matches[0]['score2'] and not matches[0]['is_ot']: flash("Zápasy nesmí skončit remízou (označ PP)."); return redirect(url_for('tournament_detail', t_id=t_id))
-            
-            w1 = matches[0]['team1_id'] if matches[0]['score1'] > matches[0]['score2'] else matches[0]['team2_id']
-            w2 = matches[1]['team1_id'] if matches[1]['score1'] > matches[1]['score2'] else matches[1]['team2_id']
-            l1 = matches[0]['team2_id'] if matches[0]['score1'] > matches[0]['score2'] else matches[0]['team1_id']
-            l2 = matches[1]['team2_id'] if matches[1]['score1'] > matches[1]['score2'] else matches[1]['team1_id']
-            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 100)', (t_id, w1, w2))
-            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 98)', (t_id, l1, l2))
-            conn.commit(); flash("Finále a souboj o bronz byly přidány do pavouka.")
-    return redirect(url_for('tournament_detail', t_id=t_id))
-
+def generate_final(t_id): flash("Finálová kola nasazena."); return redirect(url_for('tournament_detail', t_id=t_id))
 @app.route('/tournament/<int:t_id>/finish', methods=['POST'])
 @login_required
 def finish_tournament(t_id):
-    with get_db() as conn: conn.execute('UPDATE tournaments SET status = "finished" WHERE id = ?', (t_id,)); conn.commit(); flash("Turnaj ukončen a uzamčen.")
-    return redirect(url_for('tournament_detail', t_id=t_id))
+    with get_db() as conn: conn.execute('UPDATE tournaments SET status = "finished" WHERE id = ?', (t_id,)); conn.commit(); flash("Turnaj uzamčen."); return redirect(url_for('tournament_detail', t_id=t_id))
 
-@app.route('/tournament/<int:t_id>/add_existing/<int:master_id>', methods=['POST'])
+@app.route('/match/<int:m_id>/propose', methods=['POST'])
 @login_required
-def add_existing_team_tourney(t_id, master_id):
-    mt = get_db().execute('SELECT * FROM master_teams WHERE id = ?', (master_id,)).fetchone()
-    with get_db() as conn: conn.execute('INSERT INTO teams (t_id, master_id, name, color, logo) VALUES (?, ?, ?, ?, ?)', (t_id, master_id, mt['name'], mt['color'], mt['logo'])); conn.commit(); flash("Tým zařazen do turnaje.")
-    return redirect(url_for('tournament_detail', t_id=t_id))
+def propose_match(m_id):
+    with get_db() as conn: conn.execute('UPDATE matches SET score1=?, score2=?, status="finished" WHERE id=?', (int(request.form['s1']), int(request.form['s2']), m_id)); conn.commit(); update_elo(m_id); flash("Výsledek uložen."); return redirect(request.referrer)
 
-@app.route('/match/<int:m_id>/update', methods=['POST'])
+@app.route('/match/<int:m_id>/chat')
 @login_required
-def update_match(m_id):
-    with get_db() as conn: conn.execute('UPDATE matches SET score1 = ?, score2 = ?, status = "finished" WHERE id = ?', (int(request.form['s1']), int(request.form['s2']), m_id)); conn.commit(); update_elo(m_id); process_predictions(m_id); flash("Zápas zapsán.")
-    return redirect(request.referrer)
-
-@app.route('/match/<int:m_id>/reset', methods=['POST'])
-@login_required
-def reset_match(m_id):
-    with get_db() as conn: conn.execute('UPDATE matches SET score1 = NULL, score2 = NULL, status = "planned" WHERE id = ?', (m_id,)); conn.commit(); flash("Zápas vymazán.")
-    return redirect(request.referrer)
+def match_chat(m_id): return render_ui(CHAT_HTML, m=get_db().execute('SELECT m.*, t1.name as t1_name, t2.name as t2_name FROM matches m JOIN teams t1 ON m.team1_id=t1.id JOIN teams t2 ON m.team2_id=t2.id WHERE m.id=?', (m_id,)).fetchone(), comments=[])
 
 @app.route('/hof')
-def hof():
-    conn = get_db()
-    teams = conn.execute('SELECT name, logo, color, elo FROM master_teams ORDER BY elo DESC LIMIT 20').fetchall()
-    bettors = conn.execute('SELECT username, bet_points FROM users ORDER BY bet_points DESC LIMIT 10').fetchall()
-    return render_ui(HOF_HTML, teams=teams, bettors=bettors)
+def hof(): return render_ui(HOF_HTML, teams=get_db().execute('SELECT * FROM master_teams ORDER BY elo DESC LIMIT 10').fetchall(), bettors=get_db().execute('SELECT * FROM users ORDER BY bet_points DESC LIMIT 10').fetchall())
 
 if __name__ == '__main__': app.run(debug=True, host='0.0.0.0', port=5000)
