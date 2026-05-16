@@ -1,5 +1,5 @@
-flask
-gunicorn
-requests
-fpdf2==2.7.4
-qrcode
+Flask>=3.0.0
+Werkzeug>=3.0.0
+requests>=2.31.0
+Pillow>=10.0.0
+gunicorn>=21.2.0
