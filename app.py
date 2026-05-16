@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'the_cup_pro_premium_ultimate_v90'
+app.secret_key = 'the_cup_pro_premium_ultimate_v99_final'
 DB_PATH = os.path.join(os.getcwd(), 'the_cup_v31.db')
 LOGO_DIR = os.path.join(os.getcwd(), 'static', 'generated_logos')
 BRAND_DIR = os.path.join(os.getcwd(), 'static', 'brand')
@@ -37,27 +37,10 @@ def init_db():
         conn.execute('CREATE TABLE IF NOT EXISTS match_logs (id INTEGER PRIMARY KEY, m_id INTEGER, username TEXT, action TEXT, created_at TEXT)')
         conn.execute('CREATE TABLE IF NOT EXISTS predictions (id INTEGER PRIMARY KEY, user_id INTEGER, m_id INTEGER, p_score1 INTEGER, p_score2 INTEGER, UNIQUE(user_id, m_id))')
         
-        try: conn.execute('SELECT theme FROM users LIMIT 1')
-        except: conn.execute('ALTER TABLE users ADD COLUMN theme TEXT DEFAULT "system"')
-        try: conn.execute('SELECT bet_points FROM users LIMIT 1')
-        except: conn.execute('ALTER TABLE users ADD COLUMN bet_points INTEGER DEFAULT 0')
-        try: conn.execute('SELECT is_pro FROM users LIMIT 1')
-        except: conn.execute('ALTER TABLE users ADD COLUMN is_pro INTEGER DEFAULT 0')
-        try: conn.execute('SELECT round_num FROM matches LIMIT 1')
-        except: conn.execute('ALTER TABLE matches ADD COLUMN round_num INTEGER DEFAULT 1')
-        try: conn.execute('SELECT group_count FROM tournaments LIMIT 1')
-        except: conn.execute('ALTER TABLE tournaments ADD COLUMN group_count INTEGER DEFAULT 1')
-        try: conn.execute('SELECT format FROM tournaments LIMIT 1')
-        except: conn.execute('ALTER TABLE tournaments ADD COLUMN format TEXT DEFAULT "groups"')
-        try: conn.execute('SELECT group_name FROM teams LIMIT 1')
-        except: conn.execute('ALTER TABLE teams ADD COLUMN group_name TEXT DEFAULT "A"')
-        try: conn.execute('SELECT started_at FROM matches LIMIT 1')
-        except: conn.execute('ALTER TABLE matches ADD COLUMN started_at INTEGER DEFAULT 0')
-        try: conn.execute('SELECT elo FROM master_teams LIMIT 1')
-        except: conn.execute('ALTER TABLE master_teams ADD COLUMN elo INTEGER DEFAULT 1200')
-        try: conn.execute('SELECT tag FROM master_teams LIMIT 1')
-        except: conn.execute('ALTER TABLE master_teams ADD COLUMN tag TEXT')
-        
+        for col, table, default in [('theme', 'users', '"system"'), ('bet_points', 'users', '0'), ('is_pro', 'users', '0'), ('round_num', 'matches', '1'), ('group_count', 'tournaments', '1'), ('format', 'tournaments', '"groups"'), ('group_name', 'teams', '"A"'), ('started_at', 'matches', '0'), ('elo', 'master_teams', '1200'), ('tag', 'master_teams', 'NULL')]:
+            try: conn.execute(f'SELECT {col} FROM {table} LIMIT 1')
+            except: conn.execute(f'ALTER TABLE {table} ADD COLUMN {col} TEXT DEFAULT {default}' if 'TEXT' in default else f'ALTER TABLE {table} ADD COLUMN {col} INTEGER DEFAULT {default}')
+            
         admin = conn.execute('SELECT * FROM users WHERE username = "admin"').fetchone()
         if not admin: conn.execute('INSERT INTO users (username, password, theme, is_pro) VALUES (?, ?, ?, ?)', ('admin', generate_password_hash('heslo123'), 'system', 1))
         conn.commit()
@@ -67,7 +50,7 @@ init_db()
 # ==========================================
 # 2. LOGO STUDIO LOGIKA (AI GENERATION)
 # ==========================================
-STYLES = {"clean": "clean bright vector mascot logo, simple shapes", "3d": "clean 3D polished emblem", "minimal": "minimal geometric flat vector logo", "premium": "premium professional sport emblem", "cyber": "futuristic cyber esport logo", "ice": "ice crystal inspired hockey logo"}
+STYLES = {"clean": "clean bright vector mascot logo, simple shapes", "3d": "clean 3D polished emblem", "minimal": "minimal geometric flat vector", "premium": "premium professional sport emblem"}
 
 def load_meta():
     if not os.path.exists(META_FILE): return []
@@ -75,87 +58,289 @@ def load_meta():
         with open(META_FILE, "r", encoding="utf-8") as f: return json.load(f)
     except: return []
 
-def save_meta(data):
-    with open(META_FILE, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=2)
-
 def add_meta(filename, team_name, mode, prompt, label=""):
     data = load_meta()
     data.append({"filename": filename, "team_name": team_name, "mode": mode, "label": label, "prompt": prompt, "created_at": datetime.now().isoformat(timespec="seconds"), "favorite": False})
-    save_meta(data)
+    with open(META_FILE, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=2)
 
 def infer_mascot(team_name):
     n = team_name.lower()
-    rules = [("wolf", "ice wolf mascot"), ("vlk", "ice wolf mascot"), ("bear", "polar bear mascot"), ("dragon", "ice dragon mascot"), ("hawk", "ice hawk mascot"), ("eagle", "ice eagle mascot"), ("fox", "snow fox mascot"), ("knight", "cyber ice knight"), ("storm", "frozen storm emblem"), ("ice", "ice crystal emblem")]
-    for k, v in rules:
+    for k, v in [("wolf", "ice wolf"), ("bear", "polar bear"), ("dragon", "ice dragon"), ("hawk", "ice hawk"), ("eagle", "ice eagle")]:
         if k in n: return v
-    return "creative mascot inferred from team name"
+    return "creative mascot"
 
-def extract_urls(data):
+def pixazo_generate(prompt, width=1024, height=1024, steps=4):
+    api_key = (app.config.get("PIXAZO_API_KEY") or os.getenv("PIXAZO_API_KEY", "")).strip()
+    if not api_key: raise RuntimeError("API klíč PIXAZO_API_KEY nenalezen.")
+    r = requests.post("https://gateway.pixazo.ai/flux-1-schnell/v1/getData", headers={"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": api_key}, json={"prompt": prompt, "num_steps": steps, "height": height, "width": width}, timeout=180)
+    r.raise_for_status()
     urls = []
     def walk(x):
         if isinstance(x, dict):
             for k, v in x.items():
-                if k in ("url", "image_url", "output_url", "media_url", "output") and isinstance(v, str) and v.startswith("http"): urls.append(v)
+                if k in ("url", "image_url", "output_url") and isinstance(v, str): urls.append(v)
                 else: walk(v)
         elif isinstance(x, list):
             for i in x: walk(i)
-    walk(data)
-    return list(dict.fromkeys(urls))
-
-def pixazo_generate(prompt, width=1024, height=1024, steps=4):
-    api_key = (app.config.get("PIXAZO_API_KEY") or os.getenv("PIXAZO_API_KEY", "")).strip()
-    if not api_key: raise RuntimeError("Nedostatečná oprávnění k API. Zkontrolujte systémové proměnné (PIXAZO_API_KEY).")
-    r = requests.post("https://gateway.pixazo.ai/flux-1-schnell/v1/getData", headers={"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": api_key}, json={"prompt": prompt, "num_steps": int(steps), "height": int(height), "width": int(width)}, timeout=180)
-    r.raise_for_status()
-    urls = extract_urls(r.json())
-    if not urls: raise RuntimeError("Chyba externího API: Nebyla vrácena URL adresa.")
+    walk(r.json())
     return urls
 
 def save_url(url):
-    filename = f"{uuid.uuid4().hex}.png"
-    r = requests.get(url, timeout=180)
-    r.raise_for_status()
-    with open(os.path.join(LOGO_DIR, filename), "wb") as f: f.write(r.content)
-    return filename
+    fn = f"{uuid.uuid4().hex}.png"; r = requests.get(url, timeout=180); r.raise_for_status()
+    with open(os.path.join(LOGO_DIR, fn), "wb") as f: f.write(r.content)
+    return fn
 
 def compose_logo(symbol_filename, team_name):
-    src = os.path.join(LOGO_DIR, symbol_filename)
-    img = Image.open(src).convert("RGBA")
-    data = img.getdata()
-    new_data = [(255, 255, 255, 0) if item[0] > 230 and item[1] > 230 and item[2] > 230 else item for item in data]
-    img.putdata(new_data)
-    img.thumbnail((900, 720), Image.LANCZOS)
-    canvas = Image.new("RGBA", (1024, 1024), (255, 255, 255, 0))
-    canvas.alpha_composite(img, ((1024 - img.width) // 2, 35))
-    return symbol_filename
+    src = os.path.join(LOGO_DIR, symbol_filename); img = Image.open(src).convert("RGBA"); data = img.getdata()
+    img.putdata([(255, 255, 255, 0) if i[0] > 230 and i[1] > 230 and i[2] > 230 else i for i in data])
+    img.thumbnail((900, 720), Image.LANCZOS); canvas = Image.new("RGBA", (1024, 1024), (255, 255, 255, 0))
+    canvas.alpha_composite(img, ((1024 - img.width) // 2, 35)); draw = ImageDraw.Draw(canvas)
+    f_path = "/system/fonts/Roboto-Bold.ttf"; font = ImageFont.truetype(f_path, 96) if os.path.exists(f_path) else ImageFont.load_default()
+    bbox = draw.textbbox((0, 0), team_name, font=font); tx = (1024 - (bbox[2] - bbox[0])) // 2
+    draw.text((tx, 820), team_name, font=font, fill=(255, 255, 255, 255), stroke_width=4, stroke_fill=(15, 23, 42, 255))
+    fn = f"{uuid.uuid4().hex}.png"; canvas.save(os.path.join(LOGO_DIR, fn)); return fn
 
 def build_prompt(team_name, style, colors):
-    return f"Create an original professional esports + ice hockey logo SYMBOL ONLY. NO TEXT. Team name for concept only: {team_name}. Mascot: {infer_mascot(team_name)}. Visual style: {STYLES.get(style, STYLES['clean'])}. Colors: {colors}. Clean centered composition. ISOLATED ON PURE SOLID WHITE BACKGROUND. High quality vector art."
+    return f"Create an original professional esports + ice hockey logo SYMBOL ONLY. NO TEXT. Team name for concept only: {team_name}. Mascot: {infer_mascot(team_name)}. Visual style: {STYLES.get(style, STYLES['clean'])}. Colors: {colors}. Clean centered composition. ISOLATED ON PURE SOLID WHITE BACKGROUND."
 
 # ==========================================
-# 3. HTML ŠABLONY (DEFINOVÁNY PŘED RENDER_UI)
+# 3. HTML ŠABLONY (PŘED RENDER_UI)
 # ==========================================
-BASE_UI = """<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/lucide@latest"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><title>THE CUP</title><style>body{background-color:#020617;color:#f8fafc;font-family:sans-serif;overflow-x:hidden}.glass{background:rgba(15,23,42,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1)}.navy-card{background:#0f172a;border-radius:1.25rem;border:1px solid rgba(255,255,255,0.05)}input,select{background:#1e293b!important;color:white!important;outline:none}</style></head><body class="min-h-screen pb-28 flex flex-col"><div id="logo-modal" class="fixed inset-0 z-[4000] bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity" onclick="closeLogoModal()"><div class="relative w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center" onclick="event.stopPropagation()"><button type="button" onclick="closeLogoModal()" class="absolute -top-12 right-0 text-slate-400 hover:text-white"><i data-lucide="x" class="w-8 h-8"></i></button><div id="logo-modal-content" class="w-64 h-64 sm:w-80 sm:h-80 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/10 overflow-hidden"></div></div></div><div id="custom-modal" class="fixed inset-0 z-[2000] flex items-center justify-center hidden opacity-0 transition-opacity duration-300"><div class="absolute inset-0 bg-black/60" onclick="closeModal()"></div><div class="navy-card relative w-11/12 max-w-sm p-6 transform scale-95 shadow-2xl" id="custom-modal-content"><h3 class="text-xl font-black uppercase text-center mb-4 text-blue-500">Potvrzení</h3><p id="modal-message" class="text-xs text-slate-400 text-center mb-8"></p><div class="flex gap-3"><button onclick="closeModal()" class="flex-1 bg-slate-800 py-3 rounded-xl font-bold uppercase text-[10px]">Zrušit</button><button onclick="confirmModalAction()" class="flex-1 bg-blue-600 py-3 rounded-xl font-bold uppercase text-[10px] text-white shadow-lg">Potvrdit</button></div></div></div><nav class="glass p-4 sticky top-0 z-40 flex justify-center"><span class="uppercase font-black italic text-blue-500 text-xl tracking-tighter shadow-md">THE CUP</span></nav><div id="toast-container" class="fixed top-24 right-4 left-4 z-50">{% with messages=get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="bg-blue-600 text-white p-4 rounded-xl shadow-2xl font-bold mb-2 flex justify-between"><span>{{ message }}</span><button onclick="this.parentElement.remove()">&times;</button></div>{% endfor %}{% endif %}{% endwith %}</div><main class="w-full max-w-5xl mx-auto px-4 pt-6 flex-1 flex flex-col">CONTENT_PLACEHOLDER</main><div class="fixed bottom-0 left-0 right-0 bg-slate-950/95 p-4 border-t border-white/5 flex justify-around z-40"><a href="/"><i data-lucide="home"></i></a><a href="/teams"><i data-lucide="users"></i></a><a href="/create"><i data-lucide="plus-circle" class="text-blue-500 w-8 h-8"></i></a><a href="/seasons"><i data-lucide="trophy"></i></a><a href="/hof"><i data-lucide="star"></i></a><a href="/account"><i data-lucide="user"></i></a></div><script>lucide.createIcons(); let pendingForm=null; function openLogoModal(src, bgColor){ const m=document.getElementById('logo-modal'); const c=document.getElementById('logo-modal-content'); c.style.backgroundColor=bgColor; c.innerHTML=src.includes('static/')?`<img src="${src}" class="w-full h-full object-contain p-6">`:`<span class="text-7xl sm:text-9xl">${src}</span>`; m.classList.remove('hidden'); void m.offsetWidth; m.classList.remove('opacity-0'); } function closeLogoModal(){ const m=document.getElementById('logo-modal'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); } function openModal(msg,form){ document.getElementById('modal-message').innerText=msg; pendingForm=form; const m=document.getElementById('custom-modal'); m.classList.remove('hidden'); void m.offsetWidth; m.classList.remove('opacity-0'); } function closeModal(){ const m=document.getElementById('custom-modal'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); } function confirmModalAction(){ if(pendingForm)pendingForm.submit(); closeModal(); }</script></body></html>"""
-WELCOME_HTML = """<div class="text-center py-20"><h1 class="text-5xl font-black italic mb-4 text-blue-500 tracking-tighter">THE CUP ENTERPRISE</h1><p class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-10">Profesionální správa a orchestrace turnajů</p><a href="/account" class="bg-blue-600 px-10 py-4 rounded-xl font-black text-sm tracking-widest text-white shadow-xl">VSTOUPIT</a></div>"""
-ACCOUNT_HTML = """<div class="max-w-md mx-auto w-full">{% if current_user %}<div class="text-center mb-8"><h2 class="text-3xl font-black italic uppercase tracking-tighter text-blue-500">{{ current_user.username }}</h2><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Licence: PRO Premium • Sázkařské body: {{ current_user.bet_points }}</p></div><div class="navy-card p-6 border border-green-500/20 bg-green-500/5 text-center mb-6"><h3 class="text-green-500 font-black text-xs uppercase tracking-widest mb-2">Zero-Internet Local Mode</h3><p class="text-[10px] text-slate-400 mb-4">Ostatní účastníci se mohou připojit na lokální IP:</p><span class="font-mono text-xs text-green-400 block bg-slate-950 p-3 rounded-lg">{{ host_url }}</span></div><div class="flex gap-2 mb-6"><a href="/export/db" class="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-black text-[10px] text-center transition-colors">Uložit Zálohu DB</a></div><div class="navy-card p-4 text-center border-red-500/20 bg-red-500/5"><a href="/logout" class="text-xs font-black uppercase text-red-500 block py-2">Ukončit relaci (Odhlásit)</a></div>{% else %}<h2 class="text-3xl font-black italic uppercase text-center mb-8 tracking-tighter text-blue-500">Přihlášení do uzlu</h2><form action="/login" method="POST" class="navy-card p-6 space-y-4 shadow-2xl"><div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Uživatelské jméno</label><input name="username" required class="w-full rounded-xl p-4 mt-2 font-bold bg-slate-900/50 text-white"></div><div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Heslo</label><input type="password" name="password" required class="w-full rounded-xl p-4 mt-2 font-bold bg-slate-900/50 text-white"></div><button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl text-white font-black uppercase text-xs tracking-widest shadow-lg transition-colors">Ověřit identitu</button></form>{% endif %}</div>"""
-TEAMS_HTML = """<div class="flex justify-between items-center mb-8"><h2 class="text-3xl font-black italic uppercase tracking-tighter text-blue-500">Registr Týmů</h2><a href="/teams/new" class="bg-blue-600 px-4 py-2.5 rounded-xl font-black text-[10px] text-white uppercase hover:bg-blue-500 transition-colors shadow-lg">Nový Tým</a></div><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{% for team in master_teams %}<div class="navy-card p-4 flex items-center justify-between border-l-4" style="border-left-color: {{ team.color }}"><div class="flex items-center gap-4 min-w-0"><div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 cursor-pointer border border-white/5 transition-transform hover:scale-105" style="background-color: {{ team.color }}" onclick="openLogoModal('{{team.logo}}', '{{team.color}}')">{% if 'static' in team.logo %}<img src="{{team.logo}}" class="w-full h-full object-contain p-1.5">{% else %}<span class="text-2xl">{{ team.logo }}</span>{% endif %}</div><span class="font-black uppercase text-sm truncate text-white">{{ team.name }}</span></div><span class="text-[9px] font-black text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 font-mono">ELO<br>{{ team.elo }}</span></div>{% endfor %}</div>"""
-EMOJI_PICKER = """<div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Ikona / Symbol</label><input type="hidden" name="logo" id="team-logo" value="⚽"><div class="grid grid-cols-6 sm:grid-cols-8 gap-2 mt-2 p-3 bg-slate-900/50 rounded-2xl max-h-36 overflow-y-auto border border-white/5">{% set emojis = ['⚽','🏒','🏀','🏐','🏈','🎾','🎱','🏓','🥊','🥋','🐅','🦅','🦈','🐺','🐻','🦁','🐉','🐍','⚡','🔥','⭐','☠️','💎','🛡️'] %}{% for e in emojis %}<button type="button" onclick="document.getElementById('team-logo').value='{{ e }}'; document.querySelectorAll('.emoji-btn').forEach(b=>b.style.opacity=0.4); this.style.opacity=1;" class="emoji-btn text-xl p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all opacity-40">{{ e }}</button>{% endfor %}</div></div>"""
-TEAM_NEW_HTML = """<div class="max-w-xl mx-auto w-full"><h2 class="text-3xl font-black italic uppercase tracking-tighter text-blue-500 mb-6">Nový Tým</h2><div class="navy-card p-6 shadow-2xl border border-white/5 mb-8"><h3 class="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-4">Základní Tvorba</h3><form method="POST" action="/teams/new" class="space-y-4"><input type="hidden" name="is_ai" value="0"><div><label class="text-[9px] font-black uppercase text-slate-500 ml-1">Název týmu</label><input name="name" required class="w-full rounded-xl p-3 text-sm font-bold bg-slate-900/50 text-white mt-2"></div><div class="grid grid-cols-2 gap-4"><div><label class="text-[9px] font-black uppercase text-slate-500 ml-1">Tag (Zkratka)</label><input name="tag" maxlength="4" required class="w-full rounded-xl p-3 text-sm font-bold bg-slate-900/50 text-white mt-2 uppercase"></div><div><label class="text-[9px] font-black uppercase text-slate-500 ml-1">Hlavní barva</label><input type="color" name="color" value="#3b82f6" class="w-full h-11 rounded-xl mt-2 p-1 bg-slate-900/50 border border-white/5 cursor-pointer"></div></div>""" + EMOJI_PICKER + """<button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 transition-colors py-4 rounded-xl text-white font-black uppercase text-[10px] tracking-widest">Uložit do registru</button></form></div><div class="navy-card p-6 border border-yellow-500/20 bg-gradient-to-br from-slate-900 to-slate-950 relative"><h3 class="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-4 flex items-center gap-2"><i data-lucide="crown" class="w-3 h-3"></i> AI Logo Studio (Esports)</h3><form method="POST" action="/teams/new" class="space-y-4"><input type="hidden" name="is_ai" value="1"><div><label class="text-[9px] font-black uppercase text-slate-500 ml-1">Název organizace</label><input name="team_name" value="{{ pending_team }}" required class="w-full rounded-xl p-3 text-sm font-bold bg-slate-900/50 text-white mt-2" autocomplete="off"></div><div><label class="text-[9px] font-black uppercase text-slate-500 ml-1">Vizuální Styl</label><select name="style" class="w-full rounded-xl p-3 text-xs font-bold bg-slate-900/50 text-white mt-2">{% for k,v in styles.items() %}<option value="{{k}}">{{k}}</option>{% endfor %}</select></div><div class="grid grid-cols-3 gap-2 mt-4"><div class="text-center cursor-pointer" onclick="openColorPicker('body')"><label class="text-[9px] font-black uppercase text-slate-500 mb-1 block">Tělo</label><div id="swatch-body" class="w-full h-10 rounded-xl border border-white/10" style="background-color: #ffffff;"></div><input type="hidden" name="color_body" id="input-body" value="White"></div><div class="text-center cursor-pointer" onclick="openColorPicker('outline')"><label class="text-[9px] font-black uppercase text-slate-500 mb-1 block">Obrys</label><div id="swatch-outline" class="w-full h-10 rounded-xl border border-white/10" style="background-color: #020617;"></div><input type="hidden" name="color_outline" id="input-outline" value="Black"></div><div class="text-center cursor-pointer" onclick="openColorPicker('fill')"><label class="text-[9px] font-black uppercase text-slate-500 mb-1 block">Výplň</label><div id="swatch-fill" class="w-full h-10 rounded-xl border border-white/10" style="background-color: #3b82f6;"></div><input type="hidden" name="color_fill" id="input-fill" value="Blue"></div></div><button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg mt-4" onclick="this.innerHTML='AI generuje logo...';">Spustit AI Generátor</button></form>{% if images %}<div class="mt-8 border-t border-white/5 pt-6"><div class="bg-slate-900/40 rounded-xl p-4 border border-white/5 text-center"><img src="{{ url_for('static', filename='generated_logos/' ~ images[0]) }}" class="w-44 h-44 mx-auto object-contain mb-4 cursor-pointer hover:scale-105" onclick="openLogoModal(this.src, '#020617')"><form method="POST" action="/teams/use/{{ images[0] }}"><button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase py-3 rounded-xl shadow-lg">Integrovat a zapsat tým</button></form></div></div>{% endif %}</div></div><div id="custom-color-picker" class="fixed inset-0 z-[3000] bg-slate-950/90 backdrop-blur-md hidden flex flex-col items-center justify-center p-4 opacity-0 transition-opacity"><div class="navy-card p-6 w-full max-w-sm border border-white/10 relative"><button type="button" onclick="closeColorPicker()" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button><h3 class="text-base font-black uppercase mb-4 text-center text-white">Vyber Barvu</h3><div class="grid grid-cols-5 gap-3.5" id="color-grid"></div></div></div><script>const palette = [{name: 'White', hex: '#ffffff'}, {name: 'Silver', hex: '#94a3b8'}, {name: 'Gray', hex: '#475569'}, {name: 'Black', hex: '#020617'}, {name: 'Navy', hex: '#0f172a'},{name: 'Blue', hex: '#3b82f6'}, {name: 'Cyan', hex: '#06b6d4'}, {name: 'Teal', hex: '#14b8a6'}, {name: 'Green', hex: '#22c55e'}, {name: 'Lime', hex: '#84cc16'},{name: 'Yellow', hex: '#eab308'}, {name: 'Orange', hex: '#f97316'}, {name: 'Red', hex: '#ef4444'}, {name: 'Rose', hex: '#f43f5e'}, {name: 'Pink', hex: '#ec4899'},{name: 'Purple', hex: '#a855f7'}, {name: 'Violet', hex: '#8b5cf6'}, {name: 'Indigo', hex: '#6366f1'}, {name: 'Brown', hex: '#78350f'}, {name: 'Gold', hex: '#ca8a04'}]; let currentTarget = null; function openColorPicker(target) { currentTarget = target; const grid = document.getElementById('color-grid'); grid.innerHTML = ''; palette.forEach(c => { const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'w-full aspect-square rounded-full border border-white/20 shadow-md transition-transform hover:scale-110'; btn.style.backgroundColor = c.hex; btn.onclick = () => { document.getElementById('swatch-' + currentTarget).style.backgroundColor = c.hex; document.getElementById('input-' + currentTarget).value = c.name; closeColorPicker(); }; grid.appendChild(btn); }); const m = document.getElementById('custom-color-picker'); m.classList.remove('hidden'); void m.offsetWidth; m.classList.remove('opacity-0'); } function closeColorPicker() { const m = document.getElementById('custom-color-picker'); m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); }</script>"""
-CREATE_HTML = """<div class="max-w-xl mx-auto w-full text-center"><h2 class="text-3xl font-black italic uppercase tracking-tighter text-blue-500 mb-8">Vytvořit Turnaj</h2><form method="POST" class="navy-card p-6 space-y-4 border border-white/5 text-left"><div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Název turnaje</label><input name="name" required class="w-full rounded-xl p-4 mt-2 text-base font-black bg-slate-900/50 text-white"></div><div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Kapacita</label><input type="number" name="max_teams" value="8" min="2" class="w-full rounded-xl p-4 mt-2 font-bold bg-slate-900/50 text-white"></div><div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Datum konání</label><input type="date" name="start_date" required class="w-full rounded-xl p-4 mt-2 bg-slate-900/50 text-white"></div></div><div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Formát pavouka</label><select name="format" class="w-full rounded-xl p-4 mt-2 bg-slate-900/50 text-white"><option value="groups">Skupiny + Playoff</option><option value="knockout">Čistý pavouk (K.O.)</option></select></div><div><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Skupiny</label><select name="group_count" class="w-full rounded-xl p-4 mt-2 bg-slate-900/50 text-white"><option value="1">1 velká skupina</option><option value="2">2 skupiny (A, B)</option></select></div></div><button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 py-4 mt-4 rounded-xl text-white font-black uppercase text-xs tracking-widest shadow-xl transition-colors">Generovat Turnajový Uzlem</button></form></div>"""
-SEASONS_HTML = """<div class="mb-6"><h2 class="text-3xl font-black italic uppercase tracking-tighter text-blue-500">Moje Turnaje</h2><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Kompletní správa turnajových sezón</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4">{% for t in tournaments %}<div class="navy-card p-5 flex justify-between items-center border border-white/5 hover:border-blue-500/20 transition-all"><div class="min-w-0"><span class="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2 inline-block">{{ t.status }}</span><h3 class="font-black text-lg text-white truncate leading-tight">{{ t.name }}</h3><p class="text-[10px] text-slate-400 mt-1">Počet týmů: {{ t.registered_teams }}/{{ t.max_teams }}</p></div><a href="/tournament/{{ t.id }}" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-colors">Spravovat</a></div>{% endfor %}</div>"""
-MATCH_MACRO = """{% macro render_match(m, is_admin, current_user, logs_dict={}, pred=None) %}{% set is_participant = current_user and (m.t1_user_id == current_user.id or m.t2_user_id == current_user.id) %}<div class="match-card navy-card p-4 border border-white/5 relative overflow-hidden flex flex-col justify-between" data-round="{{ m.round_num }}" data-team1="{{ m.team1_id }}" data-team2="{{ m.team2_id }}" data-stage="{{ m.stage }}"><div class="flex justify-between items-center border-b border-white/5 pb-2 mb-3"><span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">KOLO {{ m.round_num }} • {{ m.stage|upper }}</span><div class="flex gap-1.5 shrink-0"><a href="/match/{{ m.id }}/chat" class="text-blue-500 p-1"><i data-lucide="message-square" class="w-4 h-4"></i></a></div></div><div class="grid grid-cols-3 items-center text-center my-auto"><div class="flex flex-col items-center gap-1.5 min-w-0"><div class="w-11 h-11 rounded-xl flex items-center justify-center border border-white/10 cursor-pointer hover:scale-105 transition-transform shadow-inner" style="background-color: {{ m.t1_color }}" onclick="openLogoModal('{{m.t1_logo}}', '{{m.t1_color}}')">{% if 'static' in m.t1_logo %}<img src="{{m.t1_logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-lg">{{m.t1_logo}}</span>{% endif %}</div><p class="text-[10px] font-black uppercase truncate w-full theme-text-main">{{ m.t1_name }}</p></div><div class="text-2xl font-black italic text-white">{% if m.status == 'finished' %}{{ m.score1 }}:{{ m.score2 }}{% elif m.status == 'proposed' %}<span class="text-orange-500">{{ m.proposed_score1 }}:{{ m.proposed_score2 }}</span>{% else %}-:-{% endif %}</div><div class="flex flex-col items-center gap-1.5 min-w-0"><div class="w-11 h-11 rounded-xl flex items-center justify-center border border-white/10 cursor-pointer hover:scale-105 transition-transform shadow-inner" style="background-color: {{ m.t2_color }}" onclick="openLogoModal('{{m.t2_logo}}', '{{m.t2_color}}')">{% if 'static' in m.t2_logo %}<img src="{{m.t2_logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-lg">{{m.t2_logo}}</span>{% endif %}</div><p class="text-[10px] font-black uppercase truncate w-full theme-text-main">{{ m.t2_name }}</p></div></div><div class="mt-4 pt-3 border-t border-white/5 flex flex-col gap-2">{% if m.status == 'planned' and (is_participant or is_admin) %}<form action="/match/{{ m.id }}/propose" method="POST" class="flex gap-2"><input type="number" name="s1" placeholder="T1" required class="w-full rounded-lg p-2 text-center text-xs bg-slate-900 text-white"><input type="number" name="s2" placeholder="T2" required class="w-full rounded-lg p-2 text-center text-xs bg-slate-900 text-white"><button class="bg-blue-600 px-3 rounded-lg text-white font-bold text-xs"><i data-lucide="check" class="w-4 h-4"></i></button></form>{% elif m.status == 'proposed' and is_admin %}<div class="flex gap-2"><form action="/match/{{ m.id }}/approve" method="POST" class="flex-1"><button class="w-full bg-green-600 text-white py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest">Schválit</button></form><form action="/match/{{ m.id }}/reset" method="POST" class="flex-1"><button class="w-full bg-red-900/40 text-red-500 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest">Odmítnout</button></form></div>{% elif m.status == 'finished' and is_admin %}<form action="/match/{{ m.id }}/reset" method="POST" class="w-full"><button class="w-full bg-slate-800 text-slate-400 py-1.5 rounded-lg text-[8px] font-black uppercase border border-white/5">Resetovat Zápas</button></form>{% endif %}</div></div>{% endmacro %}"""
-DETAIL_UI = MATCH_MACRO + """<div id="export-area" class="w-full pb-4"><div class="flex flex-wrap justify-center gap-2 mb-6 w-full" id="filter-controls"><button type="button" onclick="filterMatches('all')" class="filter-btn px-4 py-2 rounded-xl font-black text-[10px] uppercase bg-blue-600 text-white shadow-lg border border-blue-500">Všechny zápasy</button><button type="button" onclick="filterMatches('playoff')" class="filter-btn px-4 py-2 rounded-xl font-black text-[10px] uppercase bg-slate-900/50 text-slate-400 border border-white/5 hover:border-blue-500/50">Playoff</button></div><div class="flex flex-col lg:flex-row gap-6 items-start w-full"><div class="w-full lg:w-[360px] shrink-0">{% if is_admin %}<div class="navy-card p-4 mb-6 shadow-xl border border-blue-500/30"><h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shield-alert"></i> Admin Ovládací Panel</h3><div class="flex flex-col gap-2">{% if tournament.status == 'active' %}<form action="/tournament/{{ tournament.id }}/playoff" method="POST"><button class="w-full bg-blue-600 py-3 rounded-xl text-white font-black text-[10px] uppercase tracking-widest shadow-inner">Vygenerovat Playoff</button></form><form action="/tournament/{{ tournament.id }}/next_round" method="POST"><button class="w-full bg-cyan-600 py-3 rounded-xl text-white font-black text-[10px] uppercase tracking-widest mt-1">Vygenerovat další kolo</button></form><form action="/tournament/{{ tournament.id }}/generate_final" method="POST"><button class="w-full bg-yellow-500 py-3 rounded-xl text-slate-900 font-black text-[10px] uppercase tracking-widest mt-1">Vygenerovat Finále & o 3. místo</button></form><form action="/tournament/{{ tournament.id }}/finish" method="POST" onsubmit="return confirm('Opravdu ukončit turnaj?');"><button class="w-full bg-red-900/40 text-red-500 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest mt-2 border border-red-500/20">Ukončit celý turnaj</button></form>{% elif tournament.status == 'draft' %}<a href="/tournament/{{ tournament.id }}/start" class="w-full bg-green-600 block text-center py-3 rounded-xl text-white font-black text-[10px] uppercase tracking-widest">Odstartovat Turnaj</a>{% else %}<div class="text-xs text-slate-500 font-bold text-center py-2 uppercase tracking-wide">Turnaj Uzamčen a ukončen 🏆</div>{% endif %}</div></div>{% endif %}{% if standings %}<div class="navy-card overflow-hidden shadow-2xl mb-6 bg-slate-900/30"><div class="p-4 border-b border-white/5 bg-slate-900/50"><h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Aktuální Tabulka Skupiny</h3></div><table class="w-full text-left whitespace-nowrap"><tr class="bg-slate-800/50 text-[9px] text-slate-400 uppercase font-black border-b border-white/5"><th class="p-3">Tým</th><th class="p-3 text-center">Z</th><th class="p-3 text-center text-blue-500">B</th></tr>{% for s in standings %}<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-3 flex items-center gap-3"><div class="w-7 h-7 rounded flex items-center justify-center shrink-0 border border-white/5 cursor-pointer hover:scale-105" style="background-color: {{ s.color }}" onclick="openLogoModal('{{s.logo}}', '{{s.color}}')">{% if 'static' in s.logo %}<img src="{{s.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-xs">{{ s.logo }}</span>{% endif %}</div><span class="font-black uppercase text-xs text-white truncate max-w-[140px]">{{ s.name }}</span></td><td class="p-3 text-center font-bold text-slate-400 text-xs">{{ s.gp }}</td><td class="p-3 text-center text-blue-500 font-black text-sm">{{ s.pts }}</td></tr>{% endfor %}</table></div>{% endif %}</div><div class="flex-1 w-full min-w-0"><div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="groups-grid">{% for m in matches %}{{ render_match(m, is_admin, current_user, logs, preds.get(m.id)) }}{% endfor %}</div></div></div></div><script>let currentMyTeams = {{ my_team_ids | tojson | safe if my_team_ids else '[]' }}; function filterMatches(type, val = null) { document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500'); b.classList.add('bg-slate-900/50', 'text-slate-400', 'border-white/5'); }); const currentBtn = event.currentTarget; currentBtn.classList.remove('bg-slate-900/50', 'text-slate-400', 'border-white/5'); currentBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500'); const cards = document.querySelectorAll('.match-card'); cards.forEach(card => { let show = false; if(type === 'all') show = true; else if(type === 'playoff' && card.dataset.stage === 'playoffs') show = true; else if(type === 'groups' && card.dataset.stage === 'groups') show = true; card.style.display = show ? 'flex' : 'none'; }); }</script>"""
-HOF_HTML = """<div class="max-w-2xl mx-auto"><div class="text-center mb-8"><h2 class="text-3xl font-black italic uppercase text-blue-500 tracking-tighter">SÍŇ SLÁVY</h2><p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Globální rating power ranking a tipovačka</p></div><div class="navy-card overflow-hidden mb-8 shadow-xl"><table class="w-full text-left"><tr class="bg-white/5 text-[9px] uppercase font-black tracking-wider text-slate-400"><th class="p-4">Tým</th><th class="p-4 text-center text-yellow-500">ELO RATING</th></tr>{% for t in teams %}<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-4 flex items-center gap-3"><div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-white/10 cursor-pointer" style="background-color: {{t.color}}" onclick="openLogoModal('{{t.logo}}', '{{t.color}}')">{% if 'static' in t.logo %}<img src="{{t.logo}}" class="w-full h-full object-contain p-1.5">{% else %}<span class="text-sm">{{t.logo}}</span>{% endif %}</div><span class="font-black uppercase text-xs text-white">{{t.name}}</span></td><td class="p-4 text-center font-black text-yellow-500 text-lg">{{t.elo}}</td></tr>{% endfor %}</table></div><div class="navy-card p-4"><h3 class="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-4 text-center">Top 10 Sázkařů (Tipovačka)</h3><div class="space-y-2">{% for b in bettors %}<div class="flex justify-between items-center bg-slate-900/40 p-3 rounded-xl border border-white/5"><span class="font-black uppercase text-xs text-slate-300">{{loop.index}}. {{ b.username }}</span><span class="text-blue-400 font-black text-sm">{{ b.bet_points }} b</span></div>{% endfor %}</div></div></div>"""
-CHAT_HTML = """<div class="max-w-xl mx-auto w-full flex flex-col h-[75vh]"><div class="flex items-center justify-between mb-4"><h2 class="text-xl font-black italic uppercase tracking-tighter text-blue-500">Zápasový Chat</h2></div><div class="navy-card p-4 shadow-2xl border border-white/5 flex-1 overflow-y-auto mb-4 flex flex-col gap-3" id="chat-box">{% for c in comments %}<div class="{% if c.username == current_user.username %}self-end bg-blue-600/10 border-blue-500/30 text-blue-200{% else %}self-start bg-slate-800/40 border-white/5 text-slate-300{% endif %} border p-3 rounded-2xl max-w-[85%] text-xs font-bold"><p class="text-[8px] font-black uppercase tracking-widest opacity-50 mb-1">{{ c.username }} • {{ c.created_at[-8:-3] }}</p><p class="text-sm font-bold">{{ c.text }}</p></div>{% endfor %}</div><form method="POST" class="flex gap-2"><input type="text" name="text" required placeholder="Napiš zprávu..." class="w-full rounded-xl p-4 text-sm font-bold bg-slate-900/50 text-white border border-white/5"><button class="bg-blue-600 px-6 rounded-xl text-white font-black"><i data-lucide="send" class="w-4 h-4"></i></button></form></div><script>window.onload = function() { var b = document.getElementById('chat-box'); b.scrollTop = b.scrollHeight; };</script>"""
+BASE_UI = """<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#020617"><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>"><script src="https://cdn.tailwindcss.com"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script><script src="https://unpkg.com/lucide@latest"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><title>THE CUP</title><style>body{background-color:#020617;color:#f8fafc;font-family:sans-serif;overflow-x:hidden}.glass{background:rgba(15,23,42,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1)}.navy-card{background:#0f172a;border-radius:1.25rem;border:1px solid rgba(255,255,255,0.05);transition:all 0.2s}.bottom-nav{background:rgba(15,23,42,0.95);backdrop-filter:blur(15px);border-top:1px solid rgba(255,255,255,0.1)}.toast{background:#1e293b;border-left:4px solid #3b82f6}input,select{background:#1e293b!important;color:white!important;outline:none}body.light{background-color:#f8fafc;color:#0f172a}body.light .glass{background:rgba(255,255,255,0.85);border-bottom:1px solid rgba(0,0,0,0.05)}body.light .navy-card{background:#ffffff;border:1px solid rgba(0,0,0,0.05)}body.light input,body.light select{background:#f1f5f9!important;color:#0f172a!important}body.light .theme-text-main{color:#0f172a!important}.live-timer{animation:pulse 1s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch}</style></head><body class="min-h-screen pb-28 flex flex-col"><div id="offline-banner" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest text-center py-1.5 z-[9999] shadow-lg">Jste v offline režimu - prohlížíte uložená data</div><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js');});}window.addEventListener('online',()=>document.getElementById('offline-banner').classList.add('hidden'));window.addEventListener('offline',()=>document.getElementById('offline-banner').classList.remove('hidden'));if(!navigator.onLine)document.getElementById('offline-banner').classList.remove('hidden');const userTheme='{{current_user.theme if current_user else "system"}}';function applyTheme(){let isLight=userTheme==='light'||(userTheme==='system'&&!window.matchMedia('(prefers-color-scheme: dark)').matches);if(isLight){document.body.classList.add('light');document.getElementById('meta-theme-color').content="#f8fafc";}else{document.body.classList.remove('light');document.getElementById('meta-theme-color').content="#020617";}}applyTheme();function vibrate(){if(navigator.vibrate)navigator.vibrate(50);}let lastNotifCount=0;</script><div id="custom-modal" class="fixed inset-0 z-[2000] flex items-center justify-center hidden opacity-0 transition-opacity duration-300"><div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div><div class="navy-card relative w-11/12 max-w-sm p-6 transform scale-95 transition-transform duration-300 shadow-2xl" id="custom-modal-content"><div class="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-4 border border-blue-500/20"><i data-lucide="help-circle" class="w-8 h-8"></i></div><h3 class="text-xl font-black italic uppercase text-center mb-2 theme-text-main">Potvrzení</h3><p id="modal-message" class="text-xs text-slate-400 text-center mb-8"></p><div class="flex gap-3"><button onclick="closeModal()" type="button" class="flex-1 bg-slate-800 hover:bg-slate-700 py-4 rounded-xl font-black uppercase text-[10px] theme-text-main transition-colors">Zrušit</button><button onclick="confirmModalAction()" type="button" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black uppercase text-[10px] shadow-lg transition-colors">Potvrdit</button></div></div></div><div id="logo-modal" class="fixed inset-0 z-[4000] bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity" onclick="closeLogoModal()"><div class="relative w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center" onclick="event.stopPropagation()"><button type="button" onclick="closeLogoModal()" class="absolute -top-12 right-0 sm:-right-8 text-slate-400 hover:text-white"><i data-lucide="x" class="w-8 h-8"></i></button><div id="logo-modal-content" class="w-64 h-64 sm:w-80 sm:h-80 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/10 overflow-hidden" style="background-color: #0f172a;"></div></div></div><div id="toast-container" class="fixed top-24 right-4 left-4 md:left-auto md:w-80 z-[1000] space-y-2 pointer-events-none">{% with messages=get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="toast flex items-center justify-between p-4 rounded-xl shadow-2xl"><div class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4 text-blue-500 shrink-0"></i><span class="text-xs font-bold">{{ message }}</span></div><button onclick="this.parentElement.remove()" class="text-slate-500 font-bold p-2 shrink-0">&times;</button></div>{% endfor %}{% endif %}{% endwith %}</div>{% if not hide_nav %}<div class="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none mt-4"><nav id="main-nav-tab" class="glass px-10 py-2.5 rounded-[2rem] border border-white/10 shadow-2xl pointer-events-auto flex flex-col items-center"><span class="uppercase tracking-tighter font-black italic text-blue-500 text-xl drop-shadow-md">THE CUP</span></nav></div>{% endif %}<main class="w-full max-w-[1400px] mx-auto px-3 {% if not hide_nav %}pt-24{% endif %} mt-2 flex-1 flex flex-col" id="main-content">CONTENT_PLACEHOLDER</main>{% if not hide_nav %}<div class="fixed bottom-0 left-0 right-0 bottom-nav z-50 p-2"><div class="flex justify-between items-center max-w-lg mx-auto"><a href="/" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='home' }}"><i data-lucide="home"></i><span class="text-[8px] font-bold uppercase">Domů</span></a>{% if current_user %}<a href="/teams" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='teams' }}"><i data-lucide="users"></i><span class="text-[8px] font-bold uppercase">Týmy</span></a><a href="/create" onclick="vibrate()" class="bg-blue-600 w-10 h-10 flex items-center justify-center rounded-2xl shadow-xl -mt-6 border-4 border-slate-950 active:scale-90"><i data-lucide="plus" class="text-white"></i></a><a href="/seasons" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='seasons' }}"><i data-lucide="trophy"></i><span class="text-[8px] font-bold uppercase">Turnaje</span></a>{% endif %}<a href="/hof" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='hof' }}"><i data-lucide="star"></i><span class="text-[8px] font-bold uppercase">Sláva</span></a><a href="/account" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='account' }}"><i data-lucide="user"></i><span class="text-[8px] font-bold uppercase">Účet</span></a></div></div>{% endif %}<script>lucide.createIcons();let pendingForm=null;function openLogoModal(content,bgColor){const modal=document.getElementById('logo-modal');const container=document.getElementById('logo-modal-content');container.style.backgroundColor=bgColor;if(content.includes('static/')){container.innerHTML='<img src="'+content+'" class="w-full h-full object-contain p-6">';}else{container.innerHTML='<span class="drop-shadow-xl text-7xl sm:text-9xl">'+content+'</span>';}modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');}function closeLogoModal(){const modal=document.getElementById('logo-modal');modal.classList.add('opacity-0');setTimeout(()=>modal.classList.add('hidden'),300);}function openModal(message,form){document.getElementById('modal-message').innerText=message;pendingForm=form;const modal=document.getElementById('custom-modal');modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');vibrate();}function closeModal(){const modal=document.getElementById('custom-modal');modal.classList.add('opacity-0');setTimeout(()=>{modal.classList.add('hidden');pendingForm=null;},300);}function confirmModalAction(){if(pendingForm)pendingForm.submit();closeModal();vibrate();}document.addEventListener('DOMContentLoaded',()=>{const toasts=document.querySelectorAll('.toast');toasts.forEach(toast=>{setTimeout(()=>{toast.classList.add('hide');setTimeout(()=>toast.remove(),500);},5000);});});function exportImage(elementId){const btn=document.getElementById('export-btn');const origHtml=btn.innerHTML;btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';lucide.createIcons();setTimeout(()=>{html2canvas(document.getElementById(elementId),{backgroundColor:userTheme==='light'?'#f8fafc':'#020617',scale:2}).then(canvas=>{let a=document.createElement('a');a.href=canvas.toDataURL("image/jpeg");a.download='the_cup_export.jpg';a.click();btn.innerHTML=origHtml;lucide.createIcons();vibrate();});},200);}setInterval(()=>{document.querySelectorAll('.live-timer').forEach(el=>{let start=parseInt(el.dataset.start);if(start>0){let diff=Math.floor(Date.now()/1000)-start;if(diff<0)diff=0;let m=Math.floor(diff/60).toString().padStart(2,'0');let s=(diff%60).toString().padStart(2,'0');el.innerText=`${m}:${s}`;}});},1000);let touchstartX=0;let touchendX=0;document.getElementById('swipe-area').addEventListener('touchstart',e=>{touchstartX=e.changedTouches[0].screenX;},{passive:true});document.getElementById('swipe-area').addEventListener('touchend',e=>{touchendX=e.changedTouches[0].screenX;handleSwipe();},{passive:true});function handleSwipe(){if(!document.getElementById('tab-playoffs'))return;let diff=touchstartX-touchendX;if(diff>60){if(!document.getElementById('content-playoffs').classList.contains('hidden')===false){switchTab('playoffs');vibrate();}}else if(diff<-60){if(!document.getElementById('content-groups').classList.contains('hidden')===false){switchTab('groups');vibrate();}}}</script></body></html>"""
+EMOJI_PICKER = """<div class="{{ 'opacity-50 pointer-events-none' if active else '' }}"><label class="text-[10px] font-black uppercase text-slate-500 ml-1">Ikona týmu</label><input type="hidden" name="logo" id="team-logo" value="{{ team.logo if team else '⚽' }}"><div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mt-2 p-2 sm:p-3 bg-slate-900/50 rounded-2xl max-h-40 overflow-y-auto border border-white/5 shadow-inner">{% set emojis = ['⚽','🏒','🏀','🏐','🏈','🎾','🎱','🏓','🥊','🥋','🐅','🦅','🦈','🐺','🐻','🦁','🐉','🐍','⚡','🔥','⭐','☠️','💎','🛡️'] %}{% for e in emojis %}<button type="button" onclick="selectEmoji(event, '{{ e }}')" data-emoji="{{ e }}" class="emoji-btn text-2xl p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all opacity-50">{{ e }}</button>{% endfor %}</div></div>"""
+MATCH_MACRO = """{% macro render_match(m, is_admin, current_user, logs_dict={}, pred=None) %}{% set is_t1 = current_user and m.t1_user_id == current_user.id %}{% set is_t2 = current_user and m.t2_user_id == current_user.id %}{% set is_participant = is_t1 or is_t2 %}{% set my_team_id = m.team1_id if is_t1 else (m.team2_id if is_t2 else 0) %}<div class="match-card navy-card p-4 sm:p-5 border-white/5 shadow-lg relative overflow-hidden flex flex-col justify-between h-full" data-round="{{ m.round_num }}" data-team1="{{ m.team1_id }}" data-team2="{{ m.team2_id }}" data-stage="{{ m.stage }}">{% if m.stage == 'playoffs' %}<span class="absolute top-0 right-0 bg-blue-600 text-white text-[7px] font-black px-2 py-1 rounded-bl-xl tracking-widest uppercase">Playoff</span>{% endif %}{% if m.is_ot == 1 %}<span class="absolute top-0 left-0 bg-orange-600 text-white text-[7px] font-black px-2 py-1 rounded-br-xl tracking-widest uppercase">PP/SN</span>{% elif m.is_ot == 2 %}<span class="absolute top-0 left-0 bg-red-600 text-white text-[7px] font-black px-2 py-1 rounded-br-xl tracking-widest uppercase">Kontumace</span>{% endif %}<div class="flex justify-between items-start mb-2 px-1"><div class="text-[8px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">{% if m.stage == 'groups' %}KOLO {{ m.round_num }}{% endif %} {% if m.match_time %}<span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> {{ m.match_time }}</span>{% endif %} {% if m.pitch %}<span class="flex items-center gap-1"><i data-lucide="flag" class="w-3 h-3"></i> {{ m.pitch }}</span>{% endif %}{% if m.started_at %}<span class="live-timer text-red-500 animate-pulse font-mono ml-1" data-start="{{ m.started_at }}">00:00</span>{% endif %}</div><div class="flex gap-1.5 shrink-0">{% if m.status == 'planned' and is_admin and not m.started_at %}<form action="/match/{{ m.id }}/start_timer" method="POST" onsubmit="vibrate()"><button class="text-green-500 hover:text-green-400 p-1" title="Odstartovat čas"><i data-lucide="timer" class="w-4 h-4"></i></button></form>{% endif %}<button type="button" onclick="document.getElementById('log-{{ m.id }}').classList.toggle('hidden')" class="text-slate-500 hover:text-slate-300 p-1"><i data-lucide="history" class="w-4 h-4"></i></button><a href="/match/{{ m.id }}/chat" class="text-blue-500 hover:text-blue-400 p-1"><i data-lucide="message-square-text" class="w-4 h-4"></i></a> {% if is_admin %}<button type="button" onclick="document.getElementById('sched-{{ m.id }}').classList.toggle('hidden')" class="text-slate-500 hover:text-slate-300 p-1"><i data-lucide="calendar-cog" class="w-4 h-4"></i></button>{% endif %}</div></div><div id="log-{{ m.id }}" class="hidden mb-3 bg-slate-900/80 p-2.5 rounded-xl border border-white/5 space-y-1.5 max-h-32 overflow-y-auto"><h4 class="text-[8px] font-black uppercase text-blue-500 tracking-widest mb-1 border-b border-white/10 pb-1">Historie zápasu</h4>{% if m.id in logs_dict and logs_dict[m.id] %}{% for log in logs_dict[m.id] %}<p class="text-[8px] theme-text-main"><span class="opacity-50 font-mono mr-1">{{ log.created_at[-8:-3] }}</span> <span class="font-bold text-blue-400 mr-1">{{ log.username }}:</span> {{ log.action }}</p>{% endfor %}{% else %}<p class="text-[8px] text-slate-500 italic">Zatím žádné záznamy.</p>{% endif %}</div><form id="sched-{{ m.id }}" action="/match/{{ m.id }}/schedule" method="POST" class="hidden mb-4 bg-slate-900/50 p-2 rounded-xl border border-white/5 flex gap-1"><input type="time" name="time" value="{{ m.match_time }}" class="w-full rounded p-1 text-[10px] theme-text-main bg-transparent"><input type="text" name="pitch" placeholder="Hřiště" value="{{ m.pitch }}" class="w-full rounded p-1 text-[10px] theme-text-main bg-transparent"><button class="bg-blue-600 px-2 rounded text-white"><i data-lucide="check" class="w-3 h-3"></i></button></form><div class="grid grid-cols-3 items-center text-center w-full my-auto"><div class="flex flex-col items-center gap-1.5 min-w-0"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ m.t1_color }}" onclick="event.preventDefault(); event.stopPropagation(); openLogoModal('{{m.t1_logo}}', '{{m.t1_color}}')"><span class="text-xl sm:text-2xl drop-shadow-md">{% if 'static' in m.t1_logo %}<img src="{{m.t1_logo}}" class="w-full h-full object-contain p-1">{% else %}{{m.t1_logo}}{% endif %}</span></div><p class="text-[8px] sm:text-[9px] font-black uppercase truncate w-full theme-text-main">{{ m.t1_name }}</p></div><div class="text-2xl sm:text-3xl font-black italic tracking-tighter theme-text-main">{% if m.status == 'finished' %}{{ m.score1 }}:{{ m.score2 }}{% elif m.status == 'proposed' %}<span class="text-orange-500">{{ m.proposed_score1 }}:{{ m.proposed_score2 }}</span>{% else %}-:-{% endif %}</div><div class="flex flex-col items-center gap-1.5 min-w-0"><div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ m.t2_color }}" onclick="event.preventDefault(); event.stopPropagation(); openLogoModal('{{m.t2_logo}}', '{{m.t2_color}}')"><span class="text-xl sm:text-2xl drop-shadow-md">{% if 'static' in m.t2_logo %}<img src="{{m.t2_logo}}" class="w-full h-full object-contain p-1">{% else %}{{m.t2_logo}}{% endif %}</span></div><p class="text-[8px] sm:text-[9px] font-black uppercase truncate w-full theme-text-main">{{ m.t2_name }}</p></div></div><div class="mt-4 border-t border-white/5 pt-3">{% if m.status == 'planned' %}{% if is_participant or is_admin %}<form action="/match/{{ m.id }}/propose" method="POST" class="flex flex-col gap-2" onsubmit="vibrate()"><div class="flex gap-2"><input type="number" name="s1" required class="w-full rounded-lg p-2 text-center text-xs font-black theme-text-main bg-slate-900/50"><input type="number" name="s2" required class="w-full rounded-lg p-2 text-center text-xs font-black theme-text-main bg-slate-900/50"><button class="bg-blue-600 hover:bg-blue-500 px-3 rounded-lg text-white font-black text-[9px] uppercase shadow-lg"><i data-lucide="check" class="w-4 h-4"></i></button></div>{% if m.stage == 'playoffs' %}<label class="text-[9px] text-slate-500 flex items-center gap-1.5 justify-center mt-1 font-bold"><input type="checkbox" name="is_ot" value="1" class="w-3 h-3"> Prodloužení / Penalty</label>{% endif %}<input type="hidden" name="team_id" value="{{ my_team_id if not is_admin else 0 }}"></form>{% if is_admin %}<div class="flex gap-2 mt-2"><form action="/match/{{ m.id }}/forfeit/{{ m.team1_id }}" method="POST" class="flex-1" onsubmit="return confirm('Kontumovat tým 1?');"><button class="w-full bg-red-900/50 hover:bg-red-800 text-red-500 py-1.5 rounded-lg text-[8px] font-black uppercase border border-red-500/20 transition-colors">Kontumace T1</button></form><form action="/match/{{ m.id }}/forfeit/{{ m.team2_id }}" method="POST" class="flex-1" onsubmit="return confirm('Kontumovat tým 2?');"><button class="w-full bg-red-900/50 hover:bg-red-800 text-red-500 py-1.5 rounded-lg text-[8px] font-black uppercase border border-red-500/20 transition-colors">Kontumace T2</button></form></div>{% endif %}{% elif current_user %}{% if not pred %}<form action="/match/{{ m.id }}/predict" method="POST" class="flex flex-col gap-1 mt-2" onsubmit="vibrate()"><span class="text-[8px] font-black uppercase text-blue-500 text-center tracking-widest mb-1">Tvoje tipovačka</span><div class="flex gap-2"><input type="number" name="p1" required class="w-full rounded-lg p-2 text-center text-xs font-black theme-text-main bg-slate-900/50"><input type="number" name="p2" required class="w-full rounded-lg p-2 text-center text-xs font-black theme-text-main bg-slate-900/50"><button class="bg-slate-700 hover:bg-slate-600 px-3 rounded-lg text-white font-black text-[9px] uppercase shadow-lg">TIP</button></div></form>{% else %}<div class="text-center w-full mt-2"><span class="text-blue-500 text-[9px] font-black uppercase tracking-widest block bg-blue-500/10 py-1.5 rounded-lg border border-blue-500/20">Tvůj tip: {{ pred.p_score1 }} : {{ pred.p_score2 }}</span></div>{% endif %}{% else %}<div class="text-center w-full"><span class="text-slate-500 text-[9px] font-black uppercase w-full block">Neodehráno</span></div>{% endif %}{% elif m.status == 'proposed' %}{% if is_admin or (is_participant and m.proposed_by_team_id != my_team_id) %}<div class="flex flex-col gap-2 w-full"><div class="flex gap-2"><form action="/match/{{ m.id }}/approve" method="POST" class="flex-1" onsubmit="vibrate()"><button class="w-full bg-green-600 hover:bg-green-500 py-2 rounded-lg text-white font-black text-[9px] uppercase tracking-widest shadow-lg">Schválit</button></form><button type="button" onclick="document.getElementById('counter-{{ m.id }}').classList.toggle('hidden'); vibrate();" class="flex-1 bg-red-500/20 text-red-500 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-red-500/30">Odmítnout</button></div><form id="counter-{{ m.id }}" action="/match/{{ m.id }}/propose" method="POST" class="hidden flex flex-col gap-2 mt-1" onsubmit="vibrate()"><div class="flex gap-2"><input type="number" name="s1" required class="w-full rounded-lg p-2 text-center text-xs font-black bg-slate-900/50 theme-text-main"><input type="number" name="s2" required class="w-full rounded-lg p-2 text-center text-xs font-black bg-slate-900/50 theme-text-main"><button class="bg-orange-600 hover:bg-orange-500 px-3 rounded-lg text-white font-black text-[9px] uppercase shadow-lg"><i data-lucide="check" class="w-4 h-4"></i></button></div><label class="text-[9px] text-slate-500 flex items-center gap-1.5 justify-center font-bold"><input type="checkbox" name="is_ot" value="1" class="w-3 h-3"> Prodloužení / Penalty</label><input type="hidden" name="team_id" value="{{ my_team_id if not is_admin else 0 }}"></form></div>{% else %}<div class="text-center w-full"><span class="bg-orange-500/10 text-orange-500 py-2 rounded-lg text-[8px] font-black uppercase w-full block border border-orange-500/20">Čeká se na potvrzení soupeřem...</span></div>{% endif %}{% elif m.status == 'finished' and is_admin %}<div class="text-center flex justify-center gap-4"><button type="button" onclick="document.getElementById('edit-{{ m.id }}').classList.toggle('hidden')" class="text-[8px] font-black uppercase text-slate-500 hover:text-slate-300">Upravit výsledek</button><form action="/match/{{ m.id }}/reset" method="POST" onsubmit="return confirm('Opravdu vymazat výsledek a logy zápasu?');"><button type="submit" class="text-[8px] font-black uppercase text-blue-500 hover:text-blue-400">Resetovat zápas</button></form></div><form id="edit-{{ m.id }}" action="/match/{{ m.id }}/update" method="POST" class="hidden flex flex-col gap-2 mt-2" onsubmit="vibrate()"><div class="flex gap-2"><input type="number" name="s1" required value="{{ m.score1 }}" class="w-full rounded-lg p-2 text-center text-xs font-black bg-slate-900/50 theme-text-main"><input type="number" name="s2" required value="{{ m.score2 }}" class="w-full rounded-lg p-2 text-center text-xs font-black bg-slate-900/50 theme-text-main"><button class="bg-slate-700 hover:bg-slate-600 px-3 rounded-lg text-white font-black text-[9px] uppercase"><i data-lucide="check" class="w-4 h-4"></i></button></div><label class="text-[9px] text-slate-500 flex items-center gap-1.5 justify-center font-bold"><input type="checkbox" name="is_ot" value="1" {% if m.is_ot %}checked{% endif %} class="w-3 h-3"> Prodloužení / Penalty</label></form>{% endif %}</div></div>{% endmacro %}"""
+DETAIL_UI = MATCH_MACRO + """
+<div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
+    <div class="inline-block p-4 sm:p-5 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px]">
+        {% if tournament.status == 'finished' and podium and podium.first %}
+            <i data-lucide="crown" class="w-12 h-12 sm:w-16 sm:h-16 text-yellow-500 mx-auto mb-2 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]"></i>
+            <h3 class="text-[10px] text-yellow-500 font-black uppercase tracking-widest mb-1">Vítěz Turnaje</h3>
+            <h2 class="text-3xl sm:text-5xl font-black italic uppercase tracking-tighter leading-none text-yellow-500 drop-shadow-md mb-4">{{ podium.first.name }}</h2>
+            <div class="flex justify-center items-end gap-6 sm:gap-8 mt-4 border-t border-white/10 pt-4">
+                {% if podium.second %}
+                <div class="flex flex-col items-center opacity-80">
+                    <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">2. místo</span>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 mb-1 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ podium.second.color }}" onclick="openLogoModal('{{podium.second.logo}}', '{{podium.second.color}}')">{% if 'static' in podium.second.logo %}<img src="{{podium.second.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm">{{ podium.second.logo }}</span>{% endif %}</div>
+                    <span class="text-[10px] font-black uppercase theme-text-main truncate max-w-[100px]">{{ podium.second.name }}</span>
+                </div>
+                {% endif %}
+                {% if podium.third %}
+                <div class="flex flex-col items-center opacity-70">
+                    <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">3. místo</span>
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 mb-1 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ podium.third.color }}" onclick="openLogoModal('{{podium.third.logo}}', '{{podium.third.color}}')">{% if 'static' in podium.third.logo %}<img src="{{podium.third.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm">{{ podium.third.logo }}</span>{% endif %}</div>
+                    <span class="text-[10px] font-black uppercase theme-text-main truncate max-w-[100px]">{{ podium.third.name }}</span>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <i data-lucide="award" class="w-8 h-8 sm:w-10 sm:h-10 text-blue-500 mx-auto mb-1 sm:mb-2"></i>
+            <h2 class="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter leading-none theme-text-main">{{ tournament.name }}</h2>
+        {% endif %}
+        <p class="text-[10px] sm:text-xs text-slate-500 flex items-center justify-center gap-2 mt-4 font-bold"><i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-500"></i> {{ format_date_cz(tournament.start_date) }} | {{ 'Veřejný' if tournament.is_public else 'Privátní' }}</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/tv/{{ tournament.id }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase text-blue-400 flex items-center gap-1.5 transition-colors border border-blue-500/20"><i data-lucide="monitor" class="w-4 h-4"></i> TV Režim</a>
+        <a href="/export/csv/{{ tournament.id }}" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase text-yellow-400 flex items-center gap-1.5 transition-colors border border-yellow-500/20"><i data-lucide="table" class="w-4 h-4"></i> Excel</a>
+        <button type="button" onclick="exportImage('export-area')" id="export-btn" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase text-green-400 flex items-center gap-1.5 transition-colors border border-green-500/20"><i data-lucide="camera" class="w-4 h-4"></i> Sdílet</button>
+    </div>
+</div>
+
+{% set is_admin = check_admin(tournament, current_user) %}
+{% set group_matches = matches | selectattr('stage', 'equalto', 'groups') | list %}
+{% set playoff_matches = matches | selectattr('stage', 'equalto', 'playoffs') | list %}
+{% set has_playoffs = tournament.stage == 'playoffs' or playoff_matches|length > 0 %}
+{% set is_knockout_only = tournament.format == 'knockout' %}
+
+<div id="live-sync-container" data-tid="{{ tournament.id }}">
+    <div id="export-area" class="w-full pb-4">
+        {% if tournament.status != 'draft' %}
+        <div class="flex flex-wrap justify-center gap-2 mb-6 w-full" data-html2canvas-ignore id="filter-controls">
+            <button type="button" onclick="filterMatches('all')" class="filter-btn active-filter px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-blue-600 text-white shadow-lg border border-blue-500">Vše</button>
+            {% if not is_knockout_only %}
+                {% for r in range(1, tournament.rounds + 1) %}
+                    <button type="button" onclick="filterMatches('round', {{ r }})" class="filter-btn px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-slate-900/50 theme-text-main border border-white/5 hover:border-blue-500/50">Kolo {{ r }}</button>
+                {% endfor %}
+            {% endif %}
+            {% if has_playoffs or is_knockout_only %}
+                <button type="button" onclick="filterMatches('playoff')" class="filter-btn px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-slate-900/50 theme-text-main border border-white/5 hover:border-blue-500/50">Playoff</button>
+            {% endif %}
+            {% if current_user %}
+                <button type="button" onclick="filterMatches('mine', {{ current_user.id }})" class="filter-btn px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-orange-600/20 text-orange-500 border border-orange-500/30 hover:bg-orange-600/30 ml-2"><i data-lucide="user" class="w-3 h-3 inline"></i> Moje zápasy</button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div id="content-main" class="flex flex-col lg:flex-row gap-6 sm:gap-8 items-start w-full">
+            <div class="w-full lg:w-[380px] xl:w-[420px] lg:sticky lg:top-24 shrink-0">
+                {% if tournament.status == 'draft' %}
+                    {% if is_admin %}
+                    <div class="flex gap-2 mb-6"><a href="/tournament/{{ tournament.id }}/invite" class="bg-blue-600 px-4 py-4 rounded-xl text-[10px] font-black uppercase flex-1 text-center flex items-center justify-center gap-2 text-white"><i data-lucide="qr-code" class="w-4 h-4"></i> Pozvat Týmy</a>{% if teams|length >= 2 %}<a href="/tournament/{{ tournament.id }}/start" class="bg-green-500 text-white px-4 py-4 rounded-xl text-[10px] font-black uppercase flex-1 text-center"><i data-lucide="play" class="w-4 h-4 inline mr-1"></i> Odstartovat</a>{% endif %}</div>
+                    {% endif %}
+                    <div class="navy-card p-5 mb-6 shadow-xl relative"><div class="text-[9px] text-slate-500 uppercase font-black absolute top-3 right-4">{{ teams|length }}/{{ tournament.max_teams }}</div><h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-4">Registrované Týmy</h3>
+                    <div class="space-y-2">{% for t in teams %}<div class="bg-slate-900/50 p-2.5 rounded-xl flex items-center justify-between border border-white/5"><div class="flex items-center gap-3 min-w-0 pr-2"><div class="w-8 h-8 rounded flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ t.color }}" onclick="openLogoModal('{{t.logo}}', '{{t.color}}')">{% if 'static' in t.logo %}<img src="{{t.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm drop-shadow-md">{{ t.logo }}</span>{% endif %}</div><span class="text-[10px] font-bold uppercase theme-text-main truncate">{{ t.name }} {% if tournament.group_count > 1 and not is_knockout_only %}<span class="text-[8px] text-blue-500 ml-1">(Sk. {{ t.group_name }})</span>{% endif %}</span></div>{% if is_admin %}<form action="/tournament/{{ tournament.id }}/remove_team/{{ t.id }}" method="POST" onsubmit="event.preventDefault(); openModal('Opravdu vyřadit tým z turnaje?', this);"><button class="text-red-500 hover:bg-red-500/20 p-1.5 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></form>{% endif %}</div>{% endfor %}</div>
+                    {% if is_admin %}<div class="mt-4 pt-4 border-t border-white/5"><h4 class="text-[9px] font-black text-slate-500 uppercase mb-2">Přidat můj tým</h4><div class="max-h-32 overflow-y-auto space-y-1 pr-1">{% for mt in master_teams %}<form action="/tournament/{{ tournament.id }}/add_existing/{{ mt.id }}" method="POST"><button class="w-full bg-slate-900/50 p-2 rounded-lg flex items-center justify-between border border-white/5 hover:border-blue-500/50"><span class="text-[9px] font-bold uppercase truncate theme-text-main"><span class="mr-1">{% if 'static' in mt.logo %}<img src="{{mt.logo}}" class="w-4 h-4 inline object-contain">{% else %}{{ mt.logo }}{% endif %}</span> {{ mt.name }}</span><span class="text-[10px] text-blue-500 font-bold">＋</span></button></form>{% endfor %}</div></div>{% endif %}</div>
+                {% endif %}
+                
+                {% if is_admin %}
+                <div class="navy-card p-5 mb-6 shadow-xl" data-html2canvas-ignore>
+                    <h3 class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shield" class="w-3 h-3 text-blue-500"></i> Nastavení Rozhodčích</h3>
+                    <form action="/tournament/{{ tournament.id }}/referees" method="POST" class="flex flex-col gap-2"><input type="text" name="referees" value="{{ tournament.referees }}" placeholder="Napiš jména (např. Petr, Karel)..." class="w-full rounded-xl p-3 text-xs font-bold theme-text-main bg-slate-900/50"><button class="bg-slate-800 py-2 rounded-xl text-[9px] font-black uppercase theme-text-main border border-white/5">Uložit rozhodčí</button></form>
+                </div>
+                {% endif %}
+                
+                {% if is_admin and tournament.status == 'active' %}
+                <div class="navy-card p-5 mb-6 shadow-xl border border-blue-500/30" data-html2canvas-ignore>
+                    <h3 class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="settings" class="w-3 h-3"></i> Správa turnaje</h3>
+                    <div class="flex flex-col gap-2">
+                        {% if not is_knockout_only %}
+                        <form action="/tournament/{{ tournament.id }}/playoff" method="POST"><button class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl text-white font-black text-[10px] uppercase transition-colors">Vygenerovat Playoff</button></form>
+                        {% endif %}
+                        <form action="/tournament/{{ tournament.id }}/finish" method="POST" onsubmit="event.preventDefault(); openModal('Opravdu ukončit turnaj?', this);"><button class="w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-black text-[10px] uppercase text-red-400 border border-red-500/20 transition-colors">Ukončit turnaj</button></form>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if standings and not is_knockout_only %}
+                <div class="navy-card overflow-hidden shadow-2xl mb-6 table-responsive bg-slate-900/30 view-carousel view-active" id="view-standings">
+                    <table class="w-full text-left whitespace-nowrap">
+                        <tr class="bg-slate-800/80 text-[8px] text-slate-400 uppercase font-black border-b border-white/5 cursor-help">
+                            <th class="p-4">Tým</th><th class="p-4 text-center" onclick="showLegend(event, 'Zápasy celkem')">Z</th><th class="p-4 text-center" onclick="showLegend(event, 'Výhry (3 body)')">V</th><th class="p-4 text-center" onclick="showLegend(event, 'Remízy (1 bod)')">R</th><th class="p-4 text-center" onclick="showLegend(event, 'Prohry (0 bodů)')">P</th><th class="p-4 text-center" onclick="showLegend(event, 'Skóre (Vstřelené : Inkasované)')">Skóre</th><th class="p-4 text-center" onclick="showLegend(event, 'Gólový rozdíl')">GR</th><th class="p-4 text-center text-blue-500" onclick="showLegend(event, 'Body celkem')">B</th>
+                        </tr>
+                        {% set ns = namespace(last_group='') %}
+                        {% for s in standings %}
+                            {% if tournament.group_count > 1 and s.group != ns.last_group %}
+                                <tr class="bg-blue-900/20"><td colspan="8" class="p-2 text-center text-[9px] font-black text-blue-400 uppercase tracking-widest border-b border-white/5">Skupina {{ s.group }}</td></tr>
+                                {% set ns.last_group = s.group %}
+                            {% endif %}
+                            <tr class="border-b border-white/5 hover:bg-white/5">
+                                <td class="p-4 flex items-center gap-3"><div class="w-8 h-8 rounded flex items-center justify-center shrink-0 border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ s.color }}" onclick="openLogoModal('{{s.logo}}', '{{s.color}}')">{% if 'static' in s.logo %}<img src="{{s.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm drop-shadow-md">{{ s.logo }}</span>{% endif %}</div><span class="font-black uppercase text-xs theme-text-main truncate max-w-[120px]">{{ s.name }}</span></td>
+                                <td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.gp }}</td>
+                                <td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.w }}</td>
+                                <td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.d }}</td>
+                                <td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.l }}</td>
+                                <td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.gf }}:{{ s.ga }}</td>
+                                <td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.gd }}</td>
+                                <td class="p-4 text-center text-blue-500 font-black text-lg">{{ s.pts }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="flex-1 w-full min-w-0" id="match-container">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 view-carousel" id="groups-grid">
+                    {% for m in group_matches %}{{ render_match(m, is_admin, current_user, logs, preds.get(m.id)) }}{% endfor %}
+                </div>
+                
+                <div class="w-full overflow-x-auto py-4 sm:py-8 table-responsive view-carousel hidden" id="playoff-bracket">
+                    <div class="flex flex-row justify-start lg:justify-center items-stretch gap-12 sm:gap-16 min-w-max px-4">
+                        {% set playoff_rounds = [] %}
+                        {% for m in playoff_matches %}{% if m.round_num not in playoff_rounds %}{% set _ = playoff_rounds.append(m.round_num) %}{% endif %}{% endfor %}
+                        {% set ns2 = namespace(max_round=0) %}
+                        {% if playoff_rounds %}{% set ns2.max_round = playoff_rounds | max %}{% endif %}
+                        
+                        {% if playoff_matches|length >= 2 %}
+                            <div class="flex flex-col justify-around gap-12 w-64 sm:w-80 shrink-0 relative py-8">
+                                <div class="bracket-line-right hidden md:block"></div>
+                                {% for m in playoff_matches if m.round_num < 98 %}
+                                    {{ render_match(m, is_admin, current_user, logs, preds.get(m.id)) }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="flex flex-col justify-center gap-8 w-72 sm:w-[22rem] shrink-0 relative z-10">
+                            {% set final_m = playoff_matches | selectattr('round_num', 'equalto', 100) | list %}
+                            {% set bronze_m = playoff_matches | selectattr('round_num', 'equalto', 98) | list %}
+                            
+                            {% if final_m %}
+                                <div class="relative"><div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[1.5rem] blur opacity-25"></div>
+                                <div class="text-center mb-1"><span class="bg-blue-500/20 text-blue-500 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Finále</span></div>
+                                {{ render_match(final_m[0], is_admin, current_user, logs, preds.get(final_m[0].id)) }}</div>
+                            {% endif %}
+                            
+                            {% if bronze_m %}
+                                <div class="relative mt-4">
+                                <div class="text-center mb-1"><span class="bg-orange-500/20 text-orange-500 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest">O 3. místo</span></div>
+                                {{ render_match(bronze_m[0], is_admin, current_user, logs, preds.get(bronze_m[0].id)) }}</div>
+                            {% endif %}
+                            
+                            {% if not final_m and not bronze_m and is_admin and tournament.status == 'active' and tournament.stage == 'playoffs' %}
+                                <div class="navy-card p-6 border-dashed border-2 border-slate-700/50 flex flex-col items-center justify-center text-center bg-slate-900/30">
+                                    <i data-lucide="server" class="w-8 h-8 text-blue-500 mb-3 opacity-80"></i><span class="text-blue-400 font-bold text-xs uppercase tracking-widest">Generování pavouka</span>
+                                    <form action="/tournament/{{ tournament.id }}/next_round" method="POST" class="mt-4 w-full"><button class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/30 transition-colors">Vygenerovat další kolo</button></form>
+                                    <form action="/tournament/{{ tournament.id }}/generate_final" method="POST" class="mt-2 w-full"><button class="w-full bg-yellow-500 hover:bg-yellow-400 py-3 rounded-xl text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-lg transition-colors">Vygenerovat Finále & o 3. místo</button></form>
+                                </div>
+                            {% endif %}
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentUid = {{ current_user.id if current_user else 0 }};
+    let currentMyTeams = {{ my_team_ids | tojson | safe if my_team_ids else '[]' }};
+    
+    function filterMatches(type, val = null) {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500', 'bg-orange-600/20');
+            b.classList.add('bg-slate-900/50', 'theme-text-main', 'border-white/5');
+            if(b.innerHTML.includes('Moje zápasy')) b.classList.add('text-orange-500', 'border-orange-500/30');
+        });
+        const currentBtn = event.currentTarget;
+        currentBtn.classList.remove('bg-slate-900/50', 'theme-text-main', 'border-white/5', 'text-orange-500');
+        
+        if (type === 'mine') { currentBtn.classList.add('bg-orange-600/20', 'text-orange-500', 'border-orange-500/30'); }
+        else { currentBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500'); }
+
+        const groupsGrid = document.getElementById('groups-grid');
+        const playoffBracket = document.getElementById('playoff-bracket');
+        const cards = document.querySelectorAll('.match-card');
+
+        if(type === 'playoff') {
+            groupsGrid.classList.add('hidden');
+            playoffBracket.classList.remove('hidden');
+        } else {
+            playoffBracket.classList.add('hidden');
+            groupsGrid.classList.remove('hidden');
+            cards.forEach(card => {
+                if(card.dataset.stage === 'playoffs') return;
+                let show = false;
+                if(type === 'all') show = true;
+                else if(type === 'round' && card.dataset.round == val) show = true;
+                else if(type === 'mine') {
+                    let t1 = parseInt(card.dataset.team1);
+                    let t2 = parseInt(card.dataset.team2);
+                    if(currentMyTeams.includes(t1) || currentMyTeams.includes(t2)) show = true;
+                }
+                
+                card.style.display = show ? 'flex' : 'none';
+            });
+        }
+    }
+    
+    {% if is_knockout_only and tournament.status != 'draft' %}
+        document.addEventListener('DOMContentLoaded', () => { filterMatches('playoff'); });
+    {% endif %}
+</script>
+"""
+INDEX_HTML = """<div class="space-y-6 sm:space-y-10">{% if next_match %}<div class="navy-card p-5 border border-orange-500/30 bg-gradient-to-br from-slate-900 to-slate-950 shadow-2xl relative overflow-hidden mb-6 sm:mb-8"><h3 class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3"></i> Tvůj další zápas</h3><div class="flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ next_match.t1_color }}" onclick="openLogoModal('{{next_match.t1_logo}}', '{{next_match.t1_color}}')"><span class="text-xl drop-shadow-md">{% if 'static' in next_match.t1_logo %}<img src="{{next_match.t1_logo}}" class="w-full h-full object-contain p-1">{% else %}{{next_match.t1_logo}}{% endif %}</span></div><span class="font-black uppercase text-xs theme-text-main">{{ next_match.t1_name }}</span></div><div class="text-xs font-black text-slate-500 mx-2">VS</div><div class="flex items-center gap-3 text-right"><span class="font-black uppercase text-xs theme-text-main">{{ next_match.t2_name }}</span><div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ next_match.t2_color }}" onclick="openLogoModal('{{next_match.t2_logo}}', '{{next_match.t2_color}}')"><span class="text-xl drop-shadow-md">{% if 'static' in next_match.t2_logo %}<img src="{{next_match.t2_logo}}" class="w-full h-full object-contain p-1">{% else %}{{next_match.t2_logo}}{% endif %}</span></div></div></div><div class="mt-4 pt-3 border-t border-white/5 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest"><span><a href="/tournament/{{ next_match.t_id }}" class="text-blue-500 hover:underline">{{ next_match.tr_name }}</a></span><span class="flex items-center gap-2">{% if next_match.match_time %}<i data-lucide="clock" class="w-3 h-3"></i> {{ next_match.match_time }}{% endif %} {% if next_match.pitch %}<i data-lucide="flag" class="w-3 h-3 ml-2"></i> {{ next_match.pitch }}{% endif %}</span></div></div>{% endif %}<section class="grid grid-cols-2 gap-3 sm:gap-4"><div class="navy-card p-4 sm:p-5 border-blue-500/20 bg-gradient-to-br from-slate-900 to-slate-950 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 truncate">Moje turnaje</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_tournaments }}</p></div><i data-lucide="trophy" class="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 opacity-50"></i></div><div class="navy-card p-4 sm:p-5 bg-slate-900/50 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 truncate">Můj registr týmů</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_teams }}</p></div><i data-lucide="users" class="w-6 h-6 sm:w-8 sm:h-8 text-slate-500 opacity-50"></i></div></section>{% if participating_tourneys %}<section><div class="flex items-center gap-2 mb-3 sm:mb-4 px-1"><i data-lucide="play-circle" class="w-4 h-4 text-blue-500 shrink-0"></i><h2 class="text-lg sm:text-xl font-black uppercase italic text-blue-500 tracking-widest truncate">Účastním se</h2></div><div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">{% for t in participating_tourneys %}<a href="/view/{{ t.id }}" class="navy-card p-4 sm:p-5 flex justify-between items-center border border-white/5 hover:border-blue-500/30 transition-all bg-blue-900/10"><div class="min-w-0 pr-4"><span class="text-[8px] sm:text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2 inline-block">{{ t.status }}</span><h3 class="font-bold text-base sm:text-lg leading-tight truncate theme-text-main">{{ t.name }}</h3><p class="text-[9px] sm:text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 truncate"><i data-lucide="user" class="w-3 h-3 shrink-0"></i> Pořádá: {{ t.username }}</p><p class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3 shrink-0"></i> Týmy: {{ t.registered_teams }}/{{ t.max_teams }}</p></div><i data-lucide="eye" class="w-5 h-5 text-blue-500 shrink-0"></i></a>{% endfor %}</div></section>{% endif %}{% if active_tourneys %}<section><div class="flex items-center gap-2 mb-3 sm:mb-4 px-1"><i data-lucide="zap" class="w-4 h-4 text-orange-500 shrink-0"></i><h2 class="text-lg sm:text-xl font-black uppercase italic text-orange-500 tracking-widest truncate">Moje Live akce / Drafty</h2></div><div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">{% for t in active_tourneys %}<a href="/tournament/{{ t.id }}" class="navy-card p-4 sm:p-5 flex justify-between items-center border border-orange-500/10 hover:border-orange-500/30 transition-all"><div class="min-w-0 pr-4"><span class="text-[8px] sm:text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-2 inline-block">{{ t.status }}</span><h3 class="font-bold text-base sm:text-lg leading-tight truncate theme-text-main">{{ t.name }}</h3><p class="text-[9px] sm:text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 truncate"><i data-lucide="calendar-days" class="w-3 h-3 shrink-0"></i> {{ format_date_cz(t.start_date) }}</p><p class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3 shrink-0"></i> Týmy: {{ t.registered_teams }}/{{ t.max_teams }}</p></div><i data-lucide="chevron-right" class="w-5 h-5 text-orange-500 shrink-0"></i></a>{% endfor %}</div></section>{% endif %}</div>"""
+JOIN_UI = """<div class="max-w-xl mx-auto py-6 sm:py-12 text-center w-full"><div class="mb-6 sm:mb-8 flex flex-col items-center"><span class="text-[8px] sm:text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2 inline-block tracking-widest">{{ t_status }}</span><h2 class="text-3xl sm:text-4xl font-black italic uppercase mb-1 tracking-tighter theme-text-main">{{ t_name }}</h2><p class="text-xs sm:text-sm text-slate-500">Pořadatel: {{ t_username }}</p><p class="text-[10px] sm:text-xs text-slate-500 flex items-center gap-1.5 mt-2"><i data-lucide="calendar-days" class="w-3.5 h-3.5 text-blue-500 opacity-70"></i> Zahájení: {{ format_date_cz(t_start_date) }}</p><p class="text-lg sm:text-xl font-bold theme-text-main flex items-center gap-2 sm:gap-2.5 mt-4 p-3 sm:p-4 navy-card border-l-4 border-l-blue-600"><i data-lucide="users" class="w-4 h-4 sm:w-5 sm:h-5 text-blue-500"></i> Registrováno: {{ t_registered_teams }} / {{ t_max_teams }} týmů</p></div><div class="navy-card p-5 sm:p-6 mb-8 sm:mb-10 shadow-2xl text-left">{% if my_teams %}<form method="POST" class="mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-white/5 space-y-3 sm:space-y-4"><h3 class="text-[9px] sm:text-[10px] font-black uppercase text-blue-500 tracking-widest flex items-center gap-2"><i data-lucide="check-circle" class="w-3 h-3 sm:w-4 sm:h-4"></i> Nasadit existující tým</h3><select name="master_id" class="w-full rounded-xl sm:rounded-2xl p-3 sm:p-4 text-sm sm:text-base font-bold bg-slate-900/50 cursor-pointer theme-text-main">{% for mt in my_teams %}<option value="{{ mt.id }}">{{ mt.name }}</option>{% endfor %}</select><button class="w-full bg-slate-800 hover:bg-slate-700 py-3 sm:py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs theme-text-main transition-colors flex items-center justify-center gap-1.5">Potvrdit nasazení <i data-lucide="chevron-right" class="w-3 h-3 sm:w-4 sm:h-4"></i></button></form>{% endif %}<h3 class="text-[9px] sm:text-[10px] font-black uppercase text-blue-500 tracking-widest mb-3 sm:mb-4 flex items-center gap-2"><i data-lucide="user-plus" class="w-3 h-3 sm:w-4 sm:h-4"></i> Registrace nového týmu</h3><div class="p-4 bg-slate-900/50 rounded-xl border border-white/5 text-center"><p class="text-xs text-slate-400 font-bold">Pro vytvoření nového týmu jdi do <a href="/teams/new" class="text-blue-500 underline">Týmového Manažera</a> a pak se vrať na tento odkaz.</p></div></div></div>"""
+INVITE_HTML = """<div class="max-w-xl mx-auto py-8 sm:py-12 px-4 w-full flex flex-col items-center"><h2 class="text-3xl sm:text-4xl font-black italic uppercase mb-2 tracking-tighter theme-text-main text-center">Pozvánka</h2><p class="text-slate-500 text-sm font-bold uppercase tracking-widest text-center mb-8">{{ t_name }}</p><div class="bg-white p-4 sm:p-6 inline-block rounded-[2rem] sm:rounded-[3rem] shadow-2xl mb-8 border-4 border-blue-500/20 relative"><canvas id="qr-canvas"></canvas></div><div class="w-full navy-card p-4 sm:p-6 mb-8 relative border border-blue-500/20 shadow-xl"><p class="text-[9px] text-blue-400 uppercase font-black mb-3 tracking-widest">Přístupový odkaz pro hráče</p><div class="flex gap-2 items-center"><input type="text" id="invite-link-input" readonly value="{{ invite_url }}" class="w-full bg-slate-900/50 border border-white/5 rounded-xl p-3 sm:p-4 text-xs font-mono theme-text-main focus:outline-none"><button type="button" onclick="copyToClipboard(event)" class="bg-blue-600 hover:bg-blue-500 text-white p-3 sm:p-4 rounded-xl shadow-lg transition-all active:scale-95 shrink-0" title="Kopírovat"><i data-lucide="copy" class="w-5 h-5"></i></button></div></div><div class="flex flex-col sm:flex-row gap-3 w-full"><button type="button" onclick="shareLink()" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 tracking-widest"><i data-lucide="share-2" class="w-4 h-4"></i> Sdílet</button><a href="/tournament/{{ t_id }}" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-xl font-black uppercase text-[10px] sm:text-xs shadow-lg flex items-center justify-center gap-2 transition-all theme-text-main border border-white/5 tracking-widest"><i data-lucide="arrow-left" class="w-4 h-4"></i> Zpět</a></div><script>setTimeout(() => { new QRious({element: document.getElementById('qr-canvas'), value: '{{ invite_url }}', size: window.innerWidth < 400 ? 200 : 260, padding: 15, level: 'H', foreground: '#0f172a'}); }, 100); function copyToClipboard(e) { var copyText = document.getElementById("invite-link-input"); copyText.select(); copyText.setSelectionRange(0, 99999); navigator.clipboard.writeText(copyText.value).then(() => { const btn = e.currentTarget; const origHtml = btn.innerHTML; btn.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>'; lucide.createIcons(); setTimeout(() => { btn.innerHTML = origHtml; lucide.createIcons(); }, 2000); }).catch(() => alert('Zkopírujte odkaz manuálně')); } function shareLink() { if (navigator.share) { navigator.share({ title: 'THE CUP', text: 'Připoj se se svým týmem do turnaje {{ t_name }}!', url: '{{ invite_url }}', }).catch(console.error); } else { copyToClipboard({currentTarget: document.querySelector('button[title="Kopírovat"]')}); } }</script></div>"""
 
 # ==========================================
-# 4. POMOCNÉ FUNKCE A VYKRESLOVÁNÍ
+# 5. VYKRESLOVACÍ FUNKCE (Definována ZDE PO ŠABLONÁCH!)
 # ==========================================
-def get_current_user(): return get_db().execute('SELECT * FROM users WHERE id = ?', (session.get('user_id'),)).fetchone() if 'user_id' in session else None
-
 def render_ui(html_content, **kwargs):
     return render_template_string(BASE_UI.replace('CONTENT_PLACEHOLDER', html_content), current_user=get_current_user(), format_date_cz=format_date_cz, **kwargs)
 
+# ==========================================
+# 6. POMOCNÉ DEKORÁTORY A FUNKCE
+# ==========================================
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -193,6 +378,10 @@ def get_standings(t_id):
     for tid in stats: stats[tid]['gd'] = stats[tid]['gf'] - stats[tid]['ga']
     def compare(t1, t2):
         if t1['pts'] != t2['pts']: return t1['pts'] - t2['pts']
+        h2h = next((m for m in matches if (m['team1_id']==t1['id'] and m['team2_id']==t2['id']) or (m['team1_id']==t2['id'] and m['team2_id']==t1['id'])), None)
+        if h2h and h2h['score1'] is not None and h2h['score2'] is not None and h2h['score1'] != h2h['score2']:
+            if h2h['team1_id'] == t1['id']: return 1 if h2h['score1'] > h2h['score2'] else -1
+            else: return 1 if h2h['score2'] > h2h['score1'] else -1
         return t1['gd'] - t2['gd']
     return sorted(stats.values(), key=cmp_to_key(compare), reverse=True)
 
@@ -204,8 +393,20 @@ def update_elo(m_id):
     s1 = 1 if m['score1'] > m['score2'] else (0.5 if m['score1'] == m['score2'] else 0); s2 = 1 - s1; k = 32
     conn.execute('UPDATE master_teams SET elo = ? WHERE id = ?', (round(r1 + k * (s1 - e1)), m['m1'])); conn.execute('UPDATE master_teams SET elo = ? WHERE id = ?', (round(r2 + k * (s2 - e2)), m['m2'])); conn.commit()
 
+def process_predictions(m_id):
+    conn = get_db()
+    m = conn.execute('SELECT score1, score2 FROM matches WHERE id = ?', (m_id,)).fetchone()
+    if m['score1'] is None or m['score2'] is None: return
+    preds = conn.execute('SELECT * FROM predictions WHERE m_id = ?', (m_id,)).fetchall()
+    for p in preds:
+        pts = 0
+        if p['p_score1'] == m['score1'] and p['p_score2'] == m['score2']: pts = 3
+        elif (p['p_score1'] > p['p_score2'] and m['score1'] > m['score2']) or (p['p_score1'] < p['p_score2'] and m['score1'] < m['score2']) or (p['p_score1'] == p['p_score2'] and m['score1'] == m['score2']): pts = 1
+        if pts > 0: conn.execute('UPDATE users SET bet_points = bet_points + ? WHERE id = ?', (pts, p['user_id']))
+    conn.commit()
+
 # ==========================================
-# 5. INTEGRACE AI API BRIDGE
+# 7. INTEGRACE AI API BRIDGE
 # ==========================================
 def require_ai_key(f):
     @wraps(f)
@@ -244,36 +445,78 @@ def api_generate_team():
     except Exception as e: return jsonify({'error': str(e)}), 500
 
 # ==========================================
-# 6. ROUTY (ZÁKLAD A RENDERING)
+# 8. MAIN ROUTY A APLIKACE
 # ==========================================
+@app.route('/export/db')
+@login_required
+def export_db(): return send_file(DB_PATH, as_attachment=True, download_name="the_cup_zaloha.db")
+
+@app.route('/export/csv/<int:t_id>')
+@login_required
+def export_csv(t_id):
+    standings = get_standings(t_id); si = io.StringIO(); cw = csv.writer(si)
+    cw.writerow(['Poradi', 'Tym', 'Zapasu', 'Vyhry', 'Remizy', 'Prohry', 'Skore', 'Golovy_rozdil', 'Body'])
+    for i, s in enumerate(standings, 1): cw.writerow([i, s['name'], s['gp'], s['w'], s['d'], s['l'], f"{s['gf']}:{s['ga']}", s['gd'], s['pts']])
+    return Response(si.getvalue(), mimetype="text/csv", headers={"Content-Disposition": f"attachment;filename=tabulka_turnaje_{t_id}.csv"})
+
+@app.route('/upgrade_pro', methods=['POST'])
+@login_required
+def upgrade_pro():
+    with get_db() as conn: conn.execute('UPDATE users SET is_pro = 1 WHERE id = ?', (session['user_id'],)); conn.commit()
+    flash("Modul PRO Premium byl aktivován."); return redirect(url_for('account'))
+
 @app.route('/')
 def index():
-    if 'user_id' not in session: return render_ui(WELCOME_HTML)
-    return redirect(url_for('account'))
+    if 'user_id' not in session: return render_ui(WELCOME_HTML, active_page='home', hide_nav=True)
+    uid = session['user_id']
+    active_tourneys = get_db().execute('SELECT *, (SELECT COUNT(*) FROM teams WHERE t_id = tournaments.id) as registered_teams FROM tournaments WHERE user_id = ? AND status != "finished" ORDER BY start_date ASC', (uid,)).fetchall()
+    participating_tourneys = get_db().execute('SELECT DISTINCT tr.*, u.username, (SELECT COUNT(*) FROM teams WHERE t_id = tr.id) as registered_teams FROM tournaments tr JOIN users u ON tr.user_id = u.id JOIN teams t ON t.t_id = tr.id JOIN master_teams mt ON t.master_id = mt.id WHERE mt.user_id = ? AND tr.user_id != ? AND tr.status != "finished" ORDER BY tr.start_date ASC', (uid, uid)).fetchall()
+    joinable_public_tourneys = get_db().execute('SELECT tr.*, u.username, (SELECT COUNT(*) FROM teams WHERE t_id = tr.id) as registered_teams FROM tournaments tr JOIN users u ON tr.user_id = u.id WHERE tr.is_public = 1 AND tr.status = "draft" AND tr.user_id != ? AND tr.id NOT IN (SELECT t.t_id FROM teams t JOIN master_teams mt ON t.master_id = mt.id WHERE mt.user_id = ?) AND (SELECT COUNT(*) FROM teams WHERE t_id = tr.id) < tr.max_teams ORDER BY tr.start_date ASC', (uid, uid)).fetchall()
+    stats = {'total_tournaments': len(active_tourneys), 'total_teams': get_db().execute('SELECT COUNT(*) FROM master_teams WHERE user_id = ?', (uid,)).fetchone()[0]}
+    next_match = get_db().execute('SELECT m.*, t1.name as t1_name, t1.logo as t1_logo, t1.color as t1_color, t2.name as t2_name, t2.logo as t2_logo, t2.color as t2_color, tr.name as tr_name FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN master_teams mt1 ON t1.master_id = mt1.id JOIN teams t2 ON m.team2_id = t2.id JOIN master_teams mt2 ON t2.master_id = mt2.id JOIN tournaments tr ON m.t_id = tr.id WHERE m.status != "finished" AND tr.status = "active" AND (mt1.user_id = ? OR mt2.user_id = ?) ORDER BY m.round_num ASC, m.id ASC LIMIT 1', (uid, uid)).fetchone()
+    return render_ui(INDEX_HTML, active_tourneys=active_tourneys, participating_tourneys=participating_tourneys, joinable_public_tourneys=joinable_public_tourneys, stats=stats, next_match=next_match, active_page='home')
 
 @app.route('/account')
-def account():
-    user = get_current_user(); host_url = f"http://{get_local_ip()}:5000"
-    return render_ui(ACCOUNT_HTML, host_url=host_url)
+def account(): return render_ui(ACCOUNT_HTML, host_url=f"http://{get_local_ip()}:5000", active_page='account')
 
 @app.route('/login', methods=['POST'])
 def login():
     user = get_db().execute('SELECT * FROM users WHERE username = ?', (request.form['username'],)).fetchone()
     if user and check_password_hash(user['password'], request.form['password']):
-        session['user_id'] = user['id']; flash(f"Přihlášen jako: {user['username']}"); return redirect('/seasons')
-    else:
-        pw = generate_password_hash(request.form['password'])
-        with get_db() as conn: conn.execute('INSERT INTO users (username, password, theme, is_pro) VALUES (?, ?, ?, 1)', (request.form['username'], pw, 'dark'))
-        user = get_db().execute('SELECT * FROM users WHERE username = ?', (request.form['username'],)).fetchone()
-        session['user_id'] = user['id']; flash("Nový uživatel vytvořen.")
-    return redirect('/seasons')
+        session['user_id'] = user['id']; flash(f"Identita ověřena: {user['username']}"); return redirect(session.pop('next_url', url_for('index')))
+    flash("Nesprávné ověřovací údaje."); return redirect(url_for('account'))
+
+@app.route('/register', methods=['POST'])
+def register():
+    try:
+        with get_db() as conn:
+            cur = conn.cursor(); cur.execute('INSERT INTO users (username, password, theme, is_pro) VALUES (?, ?, ?, ?)', (request.form['username'], generate_password_hash(request.form['password']), 'system', 0))
+            session['user_id'] = cur.lastrowid; conn.commit(); flash("Profil zapsán do systému.")
+            return redirect(session.pop('next_url', url_for('index')))
+    except sqlite3.IntegrityError: flash("Uživatelské jméno obsazeno."); return redirect(url_for('account'))
 
 @app.route('/logout')
-def logout(): session.clear(); flash("Relace ukončena."); return redirect('/')
+def logout(): session.pop('user_id', None); flash("Spojení ukončeno."); return redirect(url_for('account'))
+
+@app.route('/set_theme', methods=['POST'])
+@login_required
+def set_theme():
+    with get_db() as conn: conn.execute('UPDATE users SET theme = ? WHERE id = ?', (request.form['theme'], session['user_id'])); conn.commit()
+    return redirect(request.referrer or url_for('account'))
+
+@app.route('/change_password', methods=['POST'])
+@login_required
+def change_password():
+    user = get_current_user()
+    if not check_password_hash(user['password'], request.form['current_password']): flash("Původní heslo není korektní.")
+    elif request.form['new_password'] != request.form['confirm_password']: flash("Kontrolní součet hesla nesouhlasí.")
+    else:
+        with get_db() as conn: conn.execute('UPDATE users SET password = ? WHERE id = ?', (generate_password_hash(request.form['new_password']), user['id'])); conn.commit(); flash("Bezpečnostní klíč modifikován.")
+    return redirect(url_for('account'))
 
 @app.route('/teams')
 @login_required
-def teams(): return render_ui(TEAMS_HTML, master_teams=get_db().execute('SELECT * FROM master_teams ORDER BY elo DESC').fetchall())
+def teams(): return render_ui(TEAMS_HTML, master_teams=get_db().execute('SELECT * FROM master_teams WHERE user_id = ? ORDER BY id DESC', (session['user_id'],)).fetchall(), active_page='teams')
 
 @app.route('/teams/new', methods=['GET', 'POST'])
 @login_required
@@ -282,96 +525,398 @@ def new_team():
     if request.method == "POST":
         is_ai = request.form.get("is_ai") == "1"
         if is_ai:
-            if not user['is_pro']: flash("Vyžaduje PRO Premium."); return redirect(url_for('new_team'))
+            if not user['is_pro']: flash("Modul AI Logo Studio vyžaduje aktivní licenci PRO Premium."); return redirect(url_for('account'))
             team_name = request.form.get("team_name", "").strip()
-            colors = f"Body: {request.form.get('color_body','White')}, Outline: {request.form.get('color_outline','Black')}, Fill: {request.form.get('color_fill','Blue')}"
+            colors = f"Main Body: {request.form.get('color_body','White')}, Outline: {request.form.get('color_outline','Black')}, Fill/Accents: {request.form.get('color_fill','Blue')}"
+            if not team_name: flash("Název týmu je vyžadován."); return redirect(url_for("new_team"))
             try:
-                prompt = build_prompt(team_name, request.form.get("style", "clean"), colors); urls = pixazo_generate(prompt)
-                fn = compose_logo(save_url(urls[0]), team_name); add_meta(fn, team_name, "SINGLE", prompt); session["pending_team_name"] = team_name; flash("AI logo vygenerováno.")
+                prompt = build_prompt(team_name, request.form.get("style", "clean"), colors); urls = pixazo_generate(prompt, width=1024, height=1024)
+                symbol = save_url(urls[0]); final_logo = compose_logo(symbol, team_name); add_meta(final_logo, team_name, "SINGLE", prompt, "Premium")
+                session["logo_studio_last"] = [final_logo]; session["pending_team_name"] = team_name; flash("Logo s transparentním pozadím vygenerováno.")
             except Exception as e: flash(pixazo_error(e))
             return redirect(url_for("new_team"))
         else:
-            with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (?, ?, ?, ?, ?)', (session['user_id'], request.form['name'], request.form['logo'], request.form['color'], request.form['tag'].upper())); conn.commit()
-            flash("Tým vytvořen."); return redirect(url_for('teams'))
-    files = sorted([x for x in os.listdir(LOGO_DIR) if x.lower().endswith((".png", ".jpg"))], key=lambda x: os.path.getmtime(os.path.join(LOGO_DIR, x)), reverse=True) if os.path.exists(LOGO_DIR) else []
-    meta_map = {m["filename"]: m for m in load_meta()}; pt = session.get("pending_team_name", "")
-    filtered_files = [f for f in files if meta_map.get(f, {}).get("team_name") == pt] if pt else []
-    return render_ui(TEAM_NEW_HTML, images=filtered_files, styles=STYLES, pending_team=pt)
+            try:
+                with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (?, ?, ?, ?, ?)', (session['user_id'], request.form['name'], request.form['logo'], request.form['color'], request.form['tag'].upper())); conn.commit()
+                flash("Tým byl ručně zapsán."); return redirect(url_for('teams'))
+            except sqlite3.IntegrityError: flash("Tento tým je již v registru zapsán.")
+
+    files = [x for x in os.listdir(LOGO_DIR) if x.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))]
+    files = sorted(files, key=lambda x: os.path.getmtime(os.path.join(LOGO_DIR, x)), reverse=True)
+    meta_map = {m["filename"]: m for m in load_meta()}
+    pending_team = session.get("pending_team_name", "")
+    filtered_files = [f for f in files if meta_map.get(f, {}).get("team_name") == pending_team]
+    return render_ui(TEAM_NEW_HTML, images=filtered_files, meta_map=meta_map, last_images=session.pop("logo_studio_last", []), styles=STYLES, active_page='teams', pending_team=pending_team)
 
 @app.route('/teams/use/<filename>', methods=['POST'])
 @login_required
 def use_logo(filename):
-    meta = next((m for m in load_meta() if m["filename"] == filename), None); team_name = meta["team_name"] if meta else session.get("pending_team_name", "AI Tým")
-    with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, elo, tag) VALUES (?, ?, ?, ?, 1200, ?)', (session['user_id'], team_name, f"/static/generated_logos/{filename}", '#1e293b', team_name[:4].upper())); conn.commit()
-    session.pop("pending_team_name", None); flash("Tým byl úspěšně integrován s AI logem."); return redirect(url_for('teams'))
+    if not os.path.isfile(os.path.join(LOGO_DIR, filename)): flash("Soubor z cache zmizel."); return redirect(url_for("new_team"))
+    meta = next((m for m in load_meta() if m["filename"] == filename), None); team_name = meta["team_name"] if meta else session.get("pending_team_name", "Neznámý tým")
+    try:
+        with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, elo, tag) VALUES (?, ?, ?, ?, ?, ?)', (session['user_id'], team_name, f"/static/generated_logos/{filename}", '#1e293b', 1200, team_name[:4].upper())); conn.commit()
+        flash("Tým byl úspěšně integrován s AI logem."); session.pop("pending_team_name", None); return redirect(url_for('teams'))
+    except sqlite3.IntegrityError: flash("Duplicitní zápis."); return redirect(url_for("new_team"))
+
+@app.route('/teams/edit/<int:team_id>', methods=['GET', 'POST'])
+@login_required
+def edit_team(team_id):
+    team = get_db().execute('SELECT * FROM master_teams WHERE id = ? AND user_id = ?', (team_id, session['user_id'])).fetchone()
+    if not team: return redirect(url_for('teams'))
+    active = is_team_active(team_id)
+    if request.method == 'POST':
+        if active: flash("Aktivní data nelze modifikovat."); return redirect(url_for('teams'))
+        with get_db() as conn: conn.execute('UPDATE master_teams SET name=?, color=?, tag=? WHERE id=?', (request.form['name'], request.form['color'], request.form['tag'].upper(), team_id)); conn.commit(); flash("Profil upraven."); return redirect(url_for('teams'))
+    return render_ui(TEAM_EDIT_HTML, team=team, active=active, active_page='teams')
+
+@app.route('/teams/delete/<int:team_id>', methods=['POST'])
+@login_required
+def delete_team(team_id):
+    if is_team_active(team_id): flash("Blokováno cizím klíčem."); return redirect(url_for('teams'))
+    with get_db() as conn: conn.execute('DELETE FROM master_teams WHERE id = ? AND user_id = ?', (team_id, session['user_id'])); conn.commit(); flash("Záznam vymazán."); return redirect(url_for('teams'))
 
 @app.route('/seasons')
 @login_required
-def seasons(): return render_ui(SEASONS_HTML, tournaments=get_db().execute('SELECT t.*, (SELECT COUNT(*) FROM teams WHERE t_id = t.id) as registered_teams FROM tournaments t ORDER BY start_date DESC').fetchall())
+def seasons(): return render_ui(SEASONS_HTML, tournaments=get_db().execute('SELECT t.*, (SELECT COUNT(*) FROM teams WHERE t_id = t.id) as registered_teams FROM tournaments t WHERE t.user_id = ? ORDER BY t.start_date DESC', (session['user_id'],)).fetchall(), active_page='seasons')
 
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
     if request.method == 'POST':
+        if int(request.form['max_teams']) < 2: flash("Minimálně 2 týmy pro inicializaci struktury."); return redirect(url_for('create'))
         with get_db() as conn:
-            cur = conn.cursor(); cur.execute('INSERT INTO tournaments (user_id, name, start_date, max_teams, join_token, rounds, group_count, format) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (session['user_id'], request.form['name'], request.form['start_date'], int(request.form['max_teams']), uuid.uuid4().hex[:12], int(request.form.get('rounds', 1)), int(request.form.get('group_count', 1)), request.form.get('format', 'groups')))
-            new_id = cur.lastrowid; conn.commit(); flash("Turnaj vytvořen."); return redirect(url_for('tournament_detail', t_id=new_id))
-    return render_ui(CREATE_HTML)
+            cur = conn.cursor(); cur.execute('INSERT INTO tournaments (user_id, name, start_date, is_public, max_teams, join_token, rounds, stage, group_count, format) VALUES (?, ?, ?, ?, ?, ?, ?, "groups", ?, ?)', (session['user_id'], request.form['name'], request.form['start_date'], int(request.form['is_public']), int(request.form['max_teams']), uuid.uuid4().hex[:12], int(request.form.get('rounds', 1)), int(request.form.get('group_count', 1)), request.form.get('format', 'groups')))
+            new_id = cur.lastrowid; conn.commit(); flash("Logika vytvořena."); return redirect(url_for('tournament_detail', t_id=new_id))
+    return render_ui(CREATE_HTML, active_page='create')
 
 @app.route('/tournament/<int:t_id>')
 @login_required
 def tournament_detail(t_id):
     t = get_db().execute('SELECT * FROM tournaments WHERE id = ?', (t_id,)).fetchone()
+    if not t: return redirect(url_for('seasons'))
+    if not check_admin(t, get_current_user()) and not get_db().execute('SELECT 1 FROM teams t JOIN master_teams mt ON t.master_id = mt.id WHERE t.t_id = ? AND mt.user_id = ?', (t_id, session['user_id'])).fetchone(): return redirect(url_for('public_view', t_id=t_id))
     teams = get_db().execute('SELECT * FROM teams WHERE t_id = ?', (t_id,)).fetchall()
-    matches = get_db().execute('SELECT m.*, t1.name as t1_name, t1.logo as t1_logo, t1.color as t1_color, t1.master_id as t1_user_id, t2.name as t2_name, t2.logo as t2_logo, t2.color as t2_color, t2.master_id as t2_user_id FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN teams t2 ON m.team2_id = t2.id WHERE m.t_id = ? ORDER BY m.round_num, m.id', (t_id,)).fetchall()
-    master_teams = get_db().execute('SELECT * FROM master_teams WHERE id NOT IN (SELECT master_id FROM teams WHERE t_id = ?) ORDER BY name ASC', (t_id,)).fetchall()
-    return render_ui(DETAIL_UI, tournament=t, teams=teams, matches=matches, standings=get_standings(t_id) if t['status'] != 'draft' else [], master_teams=master_teams, is_admin=True, my_team_ids=[tm['id'] for tm in get_db().execute('SELECT id FROM teams WHERE t_id = ?', (t_id,)).fetchall()], logs={}, preds={})
+    matches = get_db().execute('SELECT m.*, t1.name as t1_name, t1.logo as t1_logo, t1.color as t1_color, mt1.user_id as t1_user_id, t2.name as t2_name, t2.logo as t2_logo, t2.color as t2_color, mt2.user_id as t2_user_id FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN master_teams mt1 ON t1.master_id = mt1.id JOIN teams t2 ON m.team2_id = t2.id JOIN master_teams mt2 ON t2.master_id = mt2.id WHERE m.t_id = ? ORDER BY m.round_num, m.id', (t_id,)).fetchall()
+    master_teams = get_db().execute('SELECT * FROM master_teams WHERE user_id = ? AND id NOT IN (SELECT master_id FROM teams WHERE t_id = ?) ORDER BY name ASC', (session['user_id'], t_id)).fetchall()
+    logs_raw = get_db().execute('SELECT * FROM match_logs WHERE m_id IN (SELECT id FROM matches WHERE t_id = ?) ORDER BY id DESC', (t_id,)).fetchall()
+    logs_dict = {}
+    for lg in logs_raw:
+        if lg['m_id'] not in logs_dict: logs_dict[lg['m_id']] = []
+        logs_dict[lg['m_id']].append(lg)
+    my_team_ids = [tm['id'] for tm in get_db().execute('SELECT t.id FROM teams t JOIN master_teams mt ON t.master_id = mt.id WHERE mt.user_id = ? AND t.t_id = ?', (session['user_id'], t_id)).fetchall()]
+    preds = {p['m_id']: p for p in get_db().execute('SELECT * FROM predictions WHERE user_id = ?', (session['user_id'],)).fetchall()}
+    standings = get_standings(t_id) if t['status'] != 'draft' else []
+    group_matches = [m for m in matches if m['stage'] == 'groups']
+    all_finished = len(group_matches) > 0 and all(m['status'] == 'finished' for m in group_matches)
+    podium = None
+    if t['status'] == 'finished':
+        podium = {'first': None, 'second': None, 'third': None}
+        playoff_matches = [m for m in matches if m['stage'] == 'playoffs']
+        if playoff_matches:
+            final = next((m for m in reversed(playoff_matches) if m['round_num'] == 100 and m['status'] == 'finished'), None)
+            if final:
+                if final['score1'] > final['score2']: podium['first'] = {'name': final['t1_name'], 'logo': final['t1_logo'], 'color': final['t1_color']}; podium['second'] = {'name': final['t2_name'], 'logo': final['t2_logo'], 'color': final['t2_color']}
+                else: podium['first'] = {'name': final['t2_name'], 'logo': final['t2_logo'], 'color': final['t2_color']}; podium['second'] = {'name': final['t1_name'], 'logo': final['t1_logo'], 'color': final['t1_color']}
+            bronze = next((m for m in reversed(playoff_matches) if m['round_num'] == 98 and m['status'] == 'finished'), None)
+            if bronze:
+                if bronze['score1'] > bronze['score2']: podium['third'] = {'name': bronze['t1_name'], 'logo': bronze['t1_logo'], 'color': bronze['t1_color']}
+                else: podium['third'] = {'name': bronze['t2_name'], 'logo': bronze['t2_logo'], 'color': bronze['t2_color']}
+        else:
+            if standings and len(standings) > 0:
+                podium['first'] = standings[0]
+                if len(standings) > 1: podium['second'] = standings[1]
+                if len(standings) > 2: podium['third'] = standings[2]
+    return render_ui(DETAIL_UI, tournament=t, teams=teams, matches=matches, standings=standings, master_teams=master_teams, all_finished=all_finished, active_page='seasons', check_admin=check_admin, logs=logs_dict, my_team_ids=my_team_ids, podium=podium, preds=preds)
 
 @app.route('/tournament/<int:t_id>/start')
 @login_required
 def start_tournament(t_id):
     with get_db() as conn:
-        t_list = [t['id'] for t in conn.execute('SELECT id FROM master_teams LIMIT 8').fetchall()]
-        if len(t_list) < 2: flash("Nedostatek týmů."); return redirect(url_for('tournament_detail', t_id=t_id))
-        for mid in t_list:
-            mt = conn.execute('SELECT * FROM master_teams WHERE id = ?', (mid,)).fetchone()
-            conn.execute('INSERT INTO teams (t_id, master_id, name, color, logo) VALUES (?, ?, ?, ?, ?)', (t_id, mid, mt['name'], mt['color'], mt['logo']))
-        teams = conn.execute('SELECT id FROM teams WHERE t_id = ?', (t_id,)).fetchall()
-        for i in range(len(teams)):
-            for j in range(i+1, len(teams)): conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "groups", 1)', (t_id, teams[i]['id'], teams[j]['id']))
-        conn.execute('UPDATE tournaments SET status = "active" WHERE id = ?', (t_id,)); conn.commit(); flash("Turnaj odstartován."); return redirect(url_for('tournament_detail', t_id=t_id))
+        t_list = [t['id'] for t in conn.execute('SELECT id FROM teams WHERE t_id = ?', (t_id,)).fetchall()]
+        t_data = conn.execute('SELECT rounds, group_count, format FROM tournaments WHERE id = ?', (t_id,)).fetchone()
+        if len(t_list) < 2: flash("Nedostatečný počet záznamů."); return redirect(url_for('tournament_detail', t_id=t_id))
+        random.shuffle(t_list)
+        if t_data['format'] == 'knockout':
+            for i in range(0, len(t_list), 2):
+                if i+1 < len(t_list): conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 1)', (t_id, t_list[i], t_list[i+1]))
+            conn.execute('UPDATE tournaments SET status = "active", stage = "playoffs" WHERE id = ?', (t_id,)); conn.commit(); flash("Struktura nasazena.")
+            return redirect(url_for('tournament_detail', t_id=t_id))
+        rounds = t_data['rounds']
+        if t_data['group_count'] == 2 and len(t_list) >= 4:
+            mid = len(t_list) // 2
+            a_teams, b_teams = t_list[:mid], t_list[mid:]
+            for t_id_sub in a_teams: conn.execute('UPDATE teams SET group_name = "A" WHERE id = ?', (t_id_sub,))
+            for t_id_sub in b_teams: conn.execute('UPDATE teams SET group_name = "B" WHERE id = ?', (t_id_sub,))
+            for r in range(rounds):
+                for i in range(len(a_teams)):
+                    for j in range(i + 1, len(a_teams)):
+                        t1, t2 = (a_teams[i], a_teams[j]) if r % 2 == 0 else (a_teams[j], a_teams[i])
+                        conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "groups", ?)', (t_id, t1, t2, r+1))
+                for i in range(len(b_teams)):
+                    for j in range(i + 1, len(b_teams)):
+                        t1, t2 = (b_teams[i], b_teams[j]) if r % 2 == 0 else (b_teams[j], b_teams[i])
+                        conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "groups", ?)', (t_id, t1, t2, r+1))
+        else:
+            for r in range(rounds):
+                for i in range(len(t_list)):
+                    for j in range(i + 1, len(t_list)):
+                        t1, t2 = (t_list[i], t_list[j]) if r % 2 == 0 else (t_list[j], t_list[i])
+                        conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "groups", ?)', (t_id, t1, t2, r+1))
+        conn.execute('UPDATE tournaments SET status = "active", stage = "groups" WHERE id = ?', (t_id,)); conn.commit(); flash("Turnaj odstartován.")
+    return redirect(url_for('tournament_detail', t_id=t_id))
+
+@app.route('/tournament/<int:t_id>/next_round', methods=['POST'])
+@login_required
+def generate_next_knockout_round(t_id):
+    with get_db() as conn:
+        max_r = conn.execute('SELECT MAX(round_num) FROM matches WHERE t_id = ? AND stage = "playoffs"', (t_id,)).fetchone()[0]
+        if not max_r: max_r = 1
+        matches = conn.execute('SELECT * FROM matches WHERE t_id = ? AND stage = "playoffs" AND round_num = ?', (t_id, max_r)).fetchall()
+        winners = []
+        for m in matches:
+            if m['status'] != 'finished' or m['score1'] is None or m['score2'] is None: flash("Nelze generovat. Všechny zápasy aktuálního kola musí být dohrány."); return redirect(url_for('tournament_detail', t_id=t_id))
+            w1 = m['team1_id'] if m['score1'] > m['score2'] else m['team2_id']; winners.append(w1)
+        target_round = 100 if len(winners) == 2 else max_r + 1
+        for i in range(0, len(winners), 2):
+            if i+1 < len(winners): conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", ?)', (t_id, winners[i], winners[i+1], target_round))
+        conn.commit(); flash("Data převedena.")
+    return redirect(url_for('tournament_detail', t_id=t_id))
+
+@app.route('/tournament/<int:t_id>/finish', methods=['POST'])
+@login_required
+def finish_tournament(t_id):
+    with get_db() as conn: conn.execute('UPDATE tournaments SET status = "finished" WHERE id = ?', (t_id,)); conn.commit(); flash("Data uzamčena.")
+    return redirect(url_for('tournament_detail', t_id=t_id))
 
 @app.route('/tournament/<int:t_id>/playoff', methods=['POST'])
 @login_required
 def generate_playoff(t_id):
-    st = get_standings(t_id)
-    if len(st) < 2: flash("Nedostatek týmů."); return redirect(url_for('tournament_detail', t_id=t_id))
+    conn = get_db(); t_data = conn.execute('SELECT group_count FROM tournaments WHERE id = ?', (t_id,)).fetchone(); standings = get_standings(t_id)
+    if len(standings) < 2: flash("Nedostatek dat."); return redirect(url_for('tournament_detail', t_id=t_id))
     with get_db() as conn:
-        conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, st[0]['id'], st[1]['id']))
-        conn.execute('UPDATE tournaments SET stage = "playoffs" WHERE id = ?', (t_id,)); conn.commit()
-    flash("Playoff vygenerováno."); return redirect(url_for('tournament_detail', t_id=t_id))
+        conn.execute('UPDATE tournaments SET stage = "playoffs" WHERE id = ?', (t_id,))
+        if t_data['group_count'] == 2 and len(standings) >= 4:
+            s_a = [s for s in standings if conn.execute('SELECT group_name FROM teams WHERE id=?',(s['id'],)).fetchone()['group_name'] == 'A']
+            s_b = [s for s in standings if conn.execute('SELECT group_name FROM teams WHERE id=?',(s['id'],)).fetchone()['group_name'] == 'B']
+            if len(s_a) >= 2 and len(s_b) >= 2:
+                conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, s_a[0]['id'], s_b[1]['id']))
+                conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, s_b[0]['id'], s_a[1]['id']))
+            else: conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 100)', (t_id, standings[0]['id'], standings[1]['id']))
+        elif len(standings) >= 4:
+            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, standings[0]['id'], standings[3]['id']))
+            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 99)', (t_id, standings[1]['id'], standings[2]['id']))
+        else: conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 100)', (t_id, standings[0]['id'], standings[1]['id']))
+        conn.commit(); flash("Struktura vytvořena.")
+    return redirect(url_for('tournament_detail', t_id=t_id))
 
-@app.route('/tournament/<int:t_id>/next_round', methods=['POST'])
-@login_required
-def generate_next_knockout_round(t_id): flash("Zápasy zpracovány."); return redirect(url_for('tournament_detail', t_id=t_id))
 @app.route('/tournament/<int:t_id>/generate_final', methods=['POST'])
 @login_required
-def generate_final(t_id): flash("Finálová kola nasazena."); return redirect(url_for('tournament_detail', t_id=t_id))
-@app.route('/tournament/<int:t_id>/finish', methods=['POST'])
+def generate_final(t_id):
+    with get_db() as conn:
+        matches = conn.execute('SELECT * FROM matches WHERE t_id = ? AND stage = "playoffs" AND round_num = 99 ORDER BY id ASC LIMIT 2', (t_id,)).fetchall()
+        if len(matches) == 2 and matches[0]['status'] == 'finished' and matches[1]['status'] == 'finished':
+            if matches[0]['score1'] is None or matches[1]['score1'] is None: flash("Nelze generovat, chybí bodové ohodnocení."); return redirect(url_for('tournament_detail', t_id=t_id))
+            if matches[0]['score1'] == matches[0]['score2'] and not matches[0]['is_ot']: flash("Zápasy nesmí skončit remízou (označ PP)."); return redirect(url_for('tournament_detail', t_id=t_id))
+            if matches[1]['score1'] == matches[1]['score2'] and not matches[1]['is_ot']: flash("Zápasy nesmí skončit remízou (označ PP)."); return redirect(url_for('tournament_detail', t_id=t_id))
+            w1 = matches[0]['team1_id'] if matches[0]['score1'] > matches[0]['score2'] else matches[0]['team2_id']
+            w2 = matches[1]['team1_id'] if matches[1]['score1'] > matches[1]['score2'] else matches[1]['team2_id']
+            l1 = matches[0]['team2_id'] if matches[0]['score1'] > matches[0]['score2'] else matches[0]['team1_id']
+            l2 = matches[1]['team2_id'] if matches[1]['score1'] > matches[1]['score2'] else matches[1]['team1_id']
+            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 100)', (t_id, w1, w2))
+            conn.execute('INSERT INTO matches (t_id, team1_id, team2_id, stage, round_num) VALUES (?, ?, ?, "playoffs", 98)', (t_id, l1, l2))
+            conn.commit(); flash("Finální vektor zapsán.")
+    return redirect(url_for('tournament_detail', t_id=t_id))
+
+@app.route('/match/<int:m_id>/start_timer', methods=['POST'])
 @login_required
-def finish_tournament(t_id):
-    with get_db() as conn: conn.execute('UPDATE tournaments SET status = "finished" WHERE id = ?', (t_id,)); conn.commit(); flash("Turnaj uzamčen."); return redirect(url_for('tournament_detail', t_id=t_id))
+def start_timer(m_id):
+    with get_db() as conn:
+        ts = int(time.time()); conn.execute('UPDATE matches SET started_at = ? WHERE id = ?', (ts, m_id))
+        conn.commit(); log_match_action(m_id, f"Čas spuštěn: {datetime.fromtimestamp(ts).strftime('%H:%M:%S')}")
+    return redirect(request.referrer)
+
+@app.route('/match/<int:m_id>/update', methods=['POST'])
+@login_required
+def update_match(m_id):
+    s1, s2, is_ot = request.form.get('s1'), request.form.get('s2'), 1 if request.form.get('is_ot') else 0
+    if s1 and s2:
+        with get_db() as conn:
+            conn.execute('UPDATE matches SET score1 = ?, score2 = ?, is_ot = ?, status = "finished", proposed_score1=NULL, proposed_score2=NULL, proposed_by_team_id=NULL, started_at=0 WHERE id = ?', (s1, s2, is_ot, m_id))
+            conn.commit(); update_elo(m_id); process_predictions(m_id); log_match_action(m_id, f"Manuální zápis {s1}:{s2}{' (PP/SN)' if is_ot else ''}"); flash("Hodnota modifikována.")
+    return redirect(request.referrer)
+
+@app.route('/match/<int:m_id>/forfeit/<int:w_id>', methods=['POST'])
+@login_required
+def forfeit_match(m_id, w_id):
+    with get_db() as conn:
+        m = conn.execute('SELECT * FROM matches WHERE id = ?', (m_id,)).fetchone()
+        s1 = 3 if m['team1_id'] == w_id else 0; s2 = 3 if m['team2_id'] == w_id else 0
+        conn.execute('UPDATE matches SET score1 = ?, score2 = ?, is_ot = 2, status = "finished", proposed_score1=NULL, proposed_score2=NULL, proposed_by_team_id=NULL, started_at = 0 WHERE id = ?', (s1, s2, m_id))
+        conn.commit(); update_elo(m_id); process_predictions(m_id); log_match_action(m_id, f"Zápas kontumován {s1}:{s2}"); flash("Stav: Kontumováno.")
+    return redirect(request.referrer)
+
+@app.route('/match/<int:m_id>/reset', methods=['POST'])
+@login_required
+def reset_match(m_id):
+    with get_db() as conn:
+        conn.execute('UPDATE matches SET score1 = NULL, score2 = NULL, is_ot = 0, status = "planned", proposed_score1=NULL, proposed_score2=NULL, proposed_by_team_id=NULL, started_at = 0 WHERE id = ?', (m_id,))
+        conn.commit(); log_match_action(m_id, "Vymazána hodnota."); flash("Stav přepsán na nulový.")
+    return redirect(request.referrer)
 
 @app.route('/match/<int:m_id>/propose', methods=['POST'])
 @login_required
 def propose_match(m_id):
-    with get_db() as conn: conn.execute('UPDATE matches SET score1=?, score2=?, status="finished" WHERE id=?', (int(request.form['s1']), int(request.form['s2']), m_id)); conn.commit(); update_elo(m_id); flash("Výsledek uložen."); return redirect(request.referrer)
+    s1, s2, team_id, is_ot = request.form.get('s1'), request.form.get('s2'), request.form.get('team_id'), 1 if request.form.get('is_ot') else 0
+    if s1 and s2:
+        with get_db() as conn:
+            conn.execute('UPDATE matches SET proposed_score1 = ?, proposed_score2 = ?, proposed_by_team_id = ?, is_ot = ?, status = "proposed" WHERE id = ?', (s1, s2, team_id, is_ot, m_id))
+            conn.commit(); log_match_action(m_id, f"Navržen stav {s1}:{s2}{' (PP/SN)' if is_ot else ''}"); flash("Vyžadována autorizace protistrany.")
+    return redirect(request.referrer)
 
-@app.route('/match/<int:m_id>/chat')
+@app.route('/match/<int:m_id>/approve', methods=['POST'])
 @login_required
-def match_chat(m_id): return render_ui(CHAT_HTML, m=get_db().execute('SELECT m.*, t1.name as t1_name, t2.name as t2_name FROM matches m JOIN teams t1 ON m.team1_id=t1.id JOIN teams t2 ON m.team2_id=t2.id WHERE m.id=?', (m_id,)).fetchone(), comments=[])
+def approve_match(m_id):
+    with get_db() as conn:
+        m = conn.execute('SELECT * FROM matches WHERE id = ?', (m_id,)).fetchone()
+        conn.execute('UPDATE matches SET score1 = ?, score2 = ?, is_ot = ?, status = "finished", proposed_score1=NULL, proposed_score2=NULL, proposed_by_team_id=NULL, started_at=0 WHERE id = ?', (m['proposed_score1'], m['proposed_score2'], m['is_ot'], m_id))
+        conn.commit(); update_elo(m_id); process_predictions(m_id); log_match_action(m_id, f"Hodnota zapsána {m['proposed_score1']}:{m['proposed_score2']}"); flash("Příkaz schválen.")
+    return redirect(request.referrer)
 
-@app.route('/hof')
-def hof(): return render_ui(HOF_HTML, teams=get_db().execute('SELECT * FROM master_teams ORDER BY elo DESC LIMIT 10').fetchall(), bettors=get_db().execute('SELECT * FROM users ORDER BY bet_points DESC LIMIT 10').fetchall())
+@app.route('/match/<int:m_id>/predict', methods=['POST'])
+@login_required
+def predict(m_id):
+    try:
+        with get_db() as conn:
+            conn.execute('INSERT INTO predictions (user_id, m_id, p_score1, p_score2) VALUES (?, ?, ?, ?)', (session['user_id'], m_id, int(request.form['p1']), int(request.form['p2'])))
+            conn.commit(); flash("Hodnota predikce přijata.")
+    except: flash("Záznam pro tento uzel již existuje.")
+    return redirect(request.referrer)
+
+@app.route('/tournament/<int:t_id>/delete', methods=['POST'])
+@login_required
+def delete_tournament(t_id):
+    with get_db() as conn: conn.execute('DELETE FROM matches WHERE t_id = ?', (t_id,)); conn.execute('DELETE FROM teams WHERE t_id = ?', (t_id,)); conn.execute('DELETE FROM tournaments WHERE id = ? AND user_id = ?', (t_id, session['user_id'])); conn.commit(); flash("Smazáno z databáze.")
+    return redirect(url_for('seasons'))
+
+@app.route('/tournament/<int:t_id>/remove_team/<int:team_id>', methods=['POST'])
+@login_required
+def remove_team_tourney(t_id, team_id):
+    conn = get_db(); t = conn.execute('SELECT * FROM tournaments WHERE id = ?', (t_id,)).fetchone()
+    if not t or t['status'] != 'draft' or not check_admin(t, get_current_user()): flash("Přístup odepřen."); return redirect(url_for('tournament_detail', t_id=t_id))
+    with get_db() as conn: conn.execute('DELETE FROM teams WHERE id = ? AND t_id = ?', (team_id, t_id)); conn.commit(); flash("Odstraněno ze základu.")
+    return redirect(url_for('tournament_detail', t_id=t_id))
+
+@app.route('/tournament/<int:t_id>/referees', methods=['POST'])
+@login_required
+def update_referees(t_id):
+    with get_db() as conn: conn.execute('UPDATE tournaments SET referees = ? WHERE id = ? AND user_id = ?', (request.form['referees'], t_id, session['user_id'])); conn.commit(); flash("Práva zapsána.")
+    return redirect(url_for('tournament_detail', t_id=t_id))
+
+@app.route('/match/<int:m_id>/schedule', methods=['POST'])
+@login_required
+def update_schedule(m_id):
+    time_str = request.form.get('time', ''); pitch_str = request.form.get('pitch', '')
+    with get_db() as conn: 
+        conn.execute('UPDATE matches SET match_time = ?, pitch = ? WHERE id = ?', (time_str, pitch_str, m_id)); conn.commit()
+        log_match_action(m_id, f"Čas/hřiště: {time_str} | {pitch_str}"); flash("Harmonogram přepsán.")
+    return redirect(request.referrer)
+
+@app.route('/match/<int:m_id>/chat', methods=['GET', 'POST'])
+@login_required
+def match_chat(m_id):
+    user = get_current_user()
+    if request.method == 'POST':
+        with get_db() as conn: conn.execute('INSERT INTO match_comments (m_id, username, text, created_at) VALUES (?, ?, ?, ?)', (m_id, user['username'], request.form['text'], datetime.now().strftime("%Y-%m-%d %H:%M:%S"))); conn.commit()
+        return redirect(url_for('match_chat', m_id=m_id))
+    conn = get_db(); m = conn.execute('SELECT m.*, t1.name as t1_name, t1.master_id as m1_id, t2.name as t2_name, t2.master_id as m2_id FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN teams t2 ON m.team2_id = t2.id WHERE m.id = ?', (m_id,)).fetchone()
+    comments = conn.execute('SELECT * FROM match_comments WHERE m_id = ? ORDER BY id ASC', (m_id,)).fetchall()
+    all_h2h = conn.execute('SELECT score1, score2, team1_id, team2_id FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN teams t2 ON m.team2_id = t2.id WHERE m.status = "finished" AND ((t1.master_id = ? AND t2.master_id = ?) OR (t1.master_id = ? AND t2.master_id = ?))', (m['m1_id'], m['m2_id'], m['m2_id'], m['m1_id'])).fetchall()
+    h2h_stats = {'t1_wins': 0, 't2_wins': 0, 'draws': 0}
+    for old_m in all_h2h:
+        if old_m['score1'] == old_m['score2']: h2h_stats['draws'] += 1
+        elif old_m['team1_id'] == m['team1_id']:
+            if old_m['score1'] > old_m['score2']: h2h_stats['t1_wins'] += 1
+            else: h2h_stats['t2_wins'] += 1
+        else:
+            if old_m['score1'] > old_m['score2']: h2h_stats['t2_wins'] += 1
+            else: h2h_stats['t1_wins'] += 1
+    return render_ui(CHAT_HTML, m=m, comments=comments, h2h_stats=h2h_stats, active_page='none')
+
+@app.route('/tv/<int:t_id>')
+def tv_mode(t_id):
+    tournament = get_db().execute('SELECT t.*, u.username FROM tournaments t JOIN users u ON t.user_id = u.id WHERE t.id = ?', (t_id,)).fetchone()
+    if not tournament: return "404", 404
+    teams = get_db().execute('SELECT * FROM teams WHERE t_id = ?', (t_id,)).fetchall()
+    matches = get_db().execute('SELECT m.*, t1.name as t1_name, t1.logo as t1_logo, t1.color as t1_color, mt1.user_id as t1_user_id, t2.name as t2_name, t2.logo as t2_logo, t2.color as t2_color, mt2.user_id as t2_user_id FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN master_teams mt1 ON t1.master_id = mt1.id JOIN teams t2 ON m.team2_id = t2.id JOIN master_teams mt2 ON t2.master_id = mt2.id WHERE m.t_id = ? ORDER BY m.round_num, m.id', (t_id,)).fetchall()
+    standings = get_standings(t_id) if tournament['status'] != 'draft' else []
+    logs_raw = get_db().execute('SELECT * FROM match_logs WHERE m_id IN (SELECT id FROM matches WHERE t_id = ?) ORDER BY id DESC', (t_id,)).fetchall()
+    logs_dict = {}
+    for lg in logs_raw:
+        if lg['m_id'] not in logs_dict: logs_dict[lg['m_id']] = []
+        logs_dict[lg['m_id']].append(lg)
+    podium = None
+    if tournament['status'] == 'finished':
+        podium = {'first': None, 'second': None, 'third': None}; playoff_matches = [m for m in matches if m['stage'] == 'playoffs']
+        if playoff_matches:
+            final = next((m for m in reversed(playoff_matches) if m['round_num'] == 100 and m['status'] == 'finished'), None)
+            if final:
+                if final['score1'] > final['score2']: podium['first'] = {'name': final['t1_name'], 'logo': final['t1_logo'], 'color': final['t1_color']}; podium['second'] = {'name': final['t2_name'], 'logo': final['t2_logo'], 'color': final['t2_color']}
+                else: podium['first'] = {'name': final['t2_name'], 'logo': final['t2_logo'], 'color': final['t2_color']}; podium['second'] = {'name': final['t1_name'], 'logo': final['t1_logo'], 'color': final['t1_color']}
+            bronze = next((m for m in reversed(playoff_matches) if m['round_num'] == 98 and m['status'] == 'finished'), None)
+            if bronze:
+                if bronze['score1'] > bronze['score2']: podium['third'] = {'name': bronze['t1_name'], 'logo': bronze['t1_logo'], 'color': bronze['t1_color']}
+                else: podium['third'] = {'name': bronze['t2_name'], 'logo': bronze['t2_logo'], 'color': bronze['t2_color']}
+        else:
+            if standings and len(standings) > 0:
+                podium['first'] = standings[0]
+                if len(standings) > 1: podium['second'] = standings[1]
+                if len(standings) > 2: podium['third'] = standings[2]
+    html = "<script>document.addEventListener('DOMContentLoaded', () => { let views = document.querySelectorAll('.view-carousel'); if(views.length === 0) return; let i = 0; setInterval(() => { views.forEach(v => v.classList.add('hidden')); views[i].classList.remove('hidden'); i = (i + 1) % views.length; }, 10000); });</script><meta http-equiv='refresh' content='40'>" + DETAIL_UI
+    return render_ui(html, tournament=tournament, teams=teams, standings=standings, matches=matches, check_admin=lambda x,y: False, hide_nav=True, logs=logs_dict, podium=podium)
+
+@app.route('/view/<int:t_id>')
+def public_view(t_id): return redirect(url_for('tournament_detail', t_id=t_id))
+
+@app.route('/join/<token>', methods=['GET', 'POST'])
+@login_required
+def join(token):
+    conn = get_db()
+    tournament = conn.execute('SELECT t.*, u.username, (SELECT COUNT(*) FROM teams WHERE t_id = t.id) as registered_teams FROM tournaments t JOIN users u ON t.user_id = u.id WHERE t.join_token = ?', (token,)).fetchone()
+    if not tournament: flash("Poškozená spojka."); return redirect(url_for('index'))
+    if tournament['status'] != 'draft': flash("Data zamčena."); return redirect(url_for('tournament_detail', t_id=tournament['id']))
+    if tournament['registered_teams'] >= tournament['max_teams']: flash("Kapacita naplněna."); return redirect(url_for('tournament_detail', t_id=tournament['id']))
+    if request.method == 'POST':
+        try:
+            with get_db() as conn:
+                cur = conn.cursor()
+                master_id = request.form.get('master_id')
+                if master_id:
+                    mt = cur.execute('SELECT * FROM master_teams WHERE id = ? AND user_id = ?', (master_id, session['user_id'])).fetchone()
+                    if not mt: flash("Neautorizováno."); return redirect(url_for('join', token=token))
+                    m_id, name, logo, color = mt['id'], mt['name'], mt['logo'], mt['color']
+                else:
+                    name, logo, color = request.form.get('name'), request.form.get('logo'), request.form.get('color')
+                    cur.execute('INSERT OR IGNORE INTO master_teams (user_id, name, color, logo) VALUES (?, ?, ?, ?)', (session['user_id'], name, color, logo))
+                    m_id = cur.execute('SELECT id FROM master_teams WHERE user_id = ? AND name = ?', (session['user_id'], name)).fetchone()['id']
+                if cur.execute('SELECT COUNT(*) FROM teams WHERE t_id = ?', (tournament['id'],)).fetchone()[0] >= tournament['max_teams']: flash("Uzel zablokován."); return redirect(url_for('index'))
+                if cur.execute('SELECT id FROM teams WHERE t_id = ? AND master_id = ?', (tournament['id'], m_id)).fetchone(): flash("Již existuje."); return redirect(url_for('join', token=token))
+                cur.execute('INSERT INTO teams (t_id, master_id, name, color, logo) VALUES (?, ?, ?, ?, ?)', (tournament['id'], m_id, name, color, logo)); conn.commit(); return redirect(url_for('success', team_id=cur.lastrowid))
+        except Exception as e: flash(f"Nastala chyba: {str(e)}")
+    my_teams = conn.execute('SELECT * FROM master_teams WHERE user_id = ? AND id NOT IN (SELECT master_id FROM teams WHERE t_id = ?)', (session['user_id'], tournament['id'])).fetchall()
+    return render_ui(JOIN_UI, t_name=tournament['name'], t_username=tournament['username'], t_start_date=tournament['start_date'], t_id=tournament['id'], t_max_teams=tournament['max_teams'], t_registered_teams=tournament['registered_teams'], t_status=tournament['status'], my_teams=my_teams, active_page='none')
+
+@app.route('/tournament/<int:t_id>/invite')
+@login_required
+def invite(t_id): 
+    t = get_db().execute('SELECT name, join_token FROM tournaments WHERE id = ?', (t_id,)).fetchone()
+    if not t: flash("Chybí odkazující data."); return redirect(url_for('seasons'))
+    invite_url = f"{request.host_url}join/{t['join_token']}"
+    return render_ui(INVITE_HTML, invite_url=invite_url, t_id=t_id, t_name=t['name'], active_page='seasons')
+
+@app.route('/success/<int:team_id>')
+def success(team_id): return render_ui("""<div class="max-w-xl mx-auto py-8 sm:py-12 text-center px-4 w-full"><h2 class="text-3xl sm:text-4xl font-black italic uppercase mb-6 sm:mb-8 theme-text-main">Vítej v turnaji!</h2><div class="navy-card p-6 sm:p-8 mb-6 sm:mb-8"><div class="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-2xl flex items-center justify-center shadow-inner border border-white/10 mb-4" style="background-color: {{ team.color }}">{% if 'static' in team.logo %}<img src="{{team.logo}}" class="w-full h-full object-contain p-2">{% else %}<span class="text-4xl sm:text-5xl drop-shadow-md">{{ team.logo }}</span>{% endif %}</div><h3 class="text-xl sm:text-2xl font-black uppercase theme-text-main truncate">{{ team.name }}</h3></div><a href="/view/{{ team.t_id }}" class="block w-full bg-blue-600 hover:bg-blue-500 transition-colors py-4 sm:py-5 rounded-xl sm:rounded-2xl text-white font-black uppercase text-[10px] sm:text-xs shadow-xl active:scale-95">Přejít na detail turnaje</a></div>""", team=get_db().execute('SELECT * FROM teams WHERE id = ?', (team_id,)).fetchone(), active_page='none')
+
+@app.route('/api/live/<int:t_id>')
+def api_live(t_id): return jsonify({'status': 'active'})
 
 if __name__ == '__main__': app.run(debug=True, host='0.0.0.0', port=5000)
