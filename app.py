@@ -38,7 +38,7 @@ def init_db():
         conn.execute('CREATE TABLE IF NOT EXISTS match_logs (id INTEGER PRIMARY KEY, m_id INTEGER, username TEXT, action TEXT, created_at TEXT)')
         conn.execute('CREATE TABLE IF NOT EXISTS predictions (id INTEGER PRIMARY KEY, user_id INTEGER, m_id INTEGER, p_score1 INTEGER, p_score2 INTEGER, UNIQUE(user_id, m_id))')
         
-        for col, table, default in [('theme', 'users', '"system"'), ('bet_points', 'users', '0'), ('is_pro', 'users', '0'), ('round_num', 'matches', '1'), ('group_count', 'tournaments', '1'), ('format', 'tournaments', '"groups"'), ('group_name', 'teams', '"A"'), ('started_at', 'matches', '0'), ('elo', 'master_teams', '1200'), ('tag', 'master_teams', 'NULL')]:
+        for col, table, default in [('theme', 'users', '"system"'), ('bet_points', 'users', '0'), ('is_pro', 'users', '0'), ('round_num', 'matches', '1'), ('group_count', 'tournaments', '1'), ('format', 'tournaments', '"groups"'), ('group_name', 'teams', '"A"'), ('started_at', 'matches', '0'), ('elo', 'master_teams', '1200'), ('tag', 'master_teams', 'NULL'), ('banner', 'tournaments', 'NULL')]:
             try: conn.execute(f'SELECT {col} FROM {table} LIMIT 1')
             except: conn.execute(f'ALTER TABLE {table} ADD COLUMN {col} TEXT DEFAULT {default}' if 'TEXT' in default else f'ALTER TABLE {table} ADD COLUMN {col} INTEGER DEFAULT {default}')
             
@@ -469,11 +469,42 @@ def seasons(): return render_ui(SEASONS_HTML, tournaments=get_db().execute('SELE
 @app.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
+    user = get_current_user()
     if request.method == 'POST':
         if int(request.form['max_teams']) < 2: flash("Minimálně 2 týmy pro inicializaci struktury."); return redirect(url_for('create'))
+        
+        name = request.form['name'].strip()
+        start_date = request.form['start_date']
+        is_public = int(request.form['is_public'])
+        max_teams = int(request.form['max_teams'])
+        rounds = int(request.form.get('rounds', 1))
+        group_count = int(request.form.get('group_count', 1))
+        t_format = request.form.get('format', 'groups')
+        banner_type = request.form.get('banner_type', 'standard')
+        banner_val = None
+        
+        if banner_type == 'ai':
+            if not user['is_pro']:
+                flash("AI Banner vyžaduje PRO Premium.")
+                return redirect(url_for('create'))
+            try:
+                # Ultimátní prompt pro Pixazo (landscape esports banner)
+                prompt = f"Epic professional sports championship tournament wide landscape banner graphics for '{name}'. Dark navy blue background, modern tech aesthetics, luxury premium geometric glowing neon esports lines, elegant styling, championship cup trophy concept artwork. Strictly spelling '{name}'."
+                urls = pixazo_generate(prompt, width=1024, height=512)
+                fn = save_url(urls[0])
+                banner_val = f"/static/generated_logos/{fn}"
+            except Exception as e:
+                flash(pixazo_error(e))
+                return redirect(url_for('create'))
+        
         with get_db() as conn:
-            cur = conn.cursor(); cur.execute('INSERT INTO tournaments (user_id, name, start_date, is_public, max_teams, join_token, rounds, stage, group_count, format) VALUES (?, ?, ?, ?, ?, ?, ?, "groups", ?, ?)', (session['user_id'], request.form['name'], request.form['start_date'], int(request.form['is_public']), int(request.form['max_teams']), uuid.uuid4().hex[:12], int(request.form.get('rounds', 1)), int(request.form.get('group_count', 1)), request.form.get('format', 'groups')))
-            new_id = cur.lastrowid; conn.commit(); flash("Logika vytvořena."); return redirect(url_for('tournament_detail', t_id=new_id))
+            cur = conn.cursor()
+            cur.execute('INSERT INTO tournaments (user_id, name, start_date, is_public, max_teams, join_token, rounds, stage, group_count, format, banner) VALUES (?, ?, ?, ?, ?, ?, ?, "groups", ?, ?, ?)',
+                        (session['user_id'], name, start_date, is_public, max_teams, uuid.uuid4().hex[:12], rounds, group_count, t_format, banner_val))
+            new_id = cur.lastrowid
+            conn.commit()
+        flash("Turnaj úspěšně vytvořen.")
+        return redirect(url_for('tournament_detail', t_id=new_id))
     return render_ui(CREATE_HTML, active_page='create')
 
 @app.route('/tournament/<int:t_id>')
