@@ -1087,9 +1087,28 @@ def hof():
     return render_ui(HOF_HTML, teams=teams, bettors=bettors, active_page='hof')
 
 
+from werkzeug.exceptions import HTTPException
 @app.errorhandler(Exception)
 def handle_exception(e):
+    if isinstance(e, HTTPException):
+        return e
     import traceback
     return f"<div style='background:#0f172a;color:#ef4444;padding:2rem;font-family:monospace;white-space:pre-wrap;line-height:1.5;margin:1rem;border-radius:1rem;border:2px solid #ef4444;'><h2>Kritická chyba uzlu THE CUP</h2><hr><br>{traceback.format_exc()}</div>", 500
 
 if __name__ == '__main__': app.run(debug=True, host='0.0.0.0', port=5000)
+
+@app.route('/manifest.json')
+def manifest():
+    return jsonify({
+        "name": "THE CUP Enterprise",
+        "short_name": "THE CUP",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#020617",
+        "theme_color": "#020617"
+    })
+
+@app.route('/sw.js')
+def service_worker():
+    js = "self.addEventListener('fetch', function(event) {});"
+    return Response(js, mimetype='application/javascript')
