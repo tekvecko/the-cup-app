@@ -101,18 +101,35 @@ def save_url(url):
     with open(os.path.join(LOGO_DIR, fn), "wb") as f: f.write(r.content)
     return fn
 
-def compose_logo(symbol_filename, team_name):
-    src = os.path.join(LOGO_DIR, symbol_filename); img = Image.open(src).convert("RGBA"); data = img.getdata()
-    img.putdata([(255, 255, 255, 0) if i[0] > 230 and i[1] > 230 and i[2] > 230 else i for i in data])
-    img.thumbnail((900, 720), Image.LANCZOS); canvas = Image.new("RGBA", (1024, 1024), (255, 255, 255, 0))
-    canvas.alpha_composite(img, ((1024 - img.width) // 2, 35)); draw = ImageDraw.Draw(canvas)
-    f_path = "/system/fonts/Roboto-Bold.ttf"; font = ImageFont.truetype(f_path, 96) if os.path.exists(f_path) else ImageFont.load_default()
-    bbox = draw.textbbox((0, 0), team_name, font=font); tx = (1024 - (bbox[2] - bbox[0])) // 2
-    draw.text((tx, 820), team_name, font=font, fill=(255, 255, 255, 255), stroke_width=4, stroke_fill=(15, 23, 42, 255))
-    fn = f"{uuid.uuid4().hex}.png"; canvas.save(os.path.join(LOGO_DIR, fn)); return fn
+def build_logo_prompt(team_name, style, colors):
+    mascot = infer_mascot(team_name)
+    return f"Professional esports hockey logo symbol, {mascot}. Style: {STYLES.get(style, STYLES['clean'])}. Colors: {colors}. NO TEXT, NO WORDS. Clean vector art, isolated on a pure transparent background."
 
-def build_prompt(team_name, style, colors):
-    return f"Create an original professional esports + ice hockey logo SYMBOL ONLY. NO TEXT. Team name for concept only: {team_name}. Mascot: {infer_mascot(team_name)}. Visual style: {STYLES.get(style, STYLES['clean'])}. Colors: {colors}. Clean centered composition. ISOLATED ON PURE SOLID WHITE BACKGROUND."
+def build_text_prompt(team_name, style, colors):
+    return f"Esports typography text logo, strictly spelling the exact word '{team_name}'. Bold, modern, aggressive 3D esports font. Colors: {colors}. NO MASCOTS, NO SYMBOLS, ONLY THE WORD '{team_name}'. Clean vector art, isolated on a pure transparent background."
+
+def compose_two_phases(logo_file, text_file):
+    import os, uuid
+    from PIL import Image
+    
+    LOGO_DIR = os.path.join(os.getcwd(), 'static', 'generated_logos')
+    img_logo = Image.open(os.path.join(LOGO_DIR, logo_file)).convert("RGBA")
+    img_text = Image.open(os.path.join(LOGO_DIR, text_file)).convert("RGBA")
+    
+    img_logo.thumbnail((1024, 1024), Image.LANCZOS)
+    
+    # Oříznutí pouze středu s textem (odstraní přebytečné pozadí nad/pod nápisem)
+    w, h = img_text.size
+    img_text_cropped = img_text.crop((0, h//2 - 250, w, h//2 + 250))
+    
+    # Složení na vertikální plátno (Bez jakéhokoliv mazání barev Pythonem!)
+    canvas = Image.new("RGBA", (1024, 1500), (0, 0, 0, 0))
+    canvas.paste(img_logo, ((1024 - img_logo.width) // 2, 0))
+    canvas.paste(img_text_cropped, (0, 1000))
+    
+    final_name = f"{uuid.uuid4().hex}.png"
+    canvas.save(os.path.join(LOGO_DIR, final_name))
+    return final_name
 
 # ==========================================
 # 3. HTML ŠABLONY (SPRÁVNÉ POŘADÍ DEKLARACÍ)
@@ -594,101 +611,21 @@ def api_generate_team():
     data = request.json; team_name = data.get('team_name'); colors = data.get('colors', 'navy, white')
     if not team_name: return jsonify({'error': 'Chybí team_name'}), 400
     try:
-        prompt = build_prompt(team_name, "clean", colors); urls = pixazo_generate(prompt, width=1024, height=1024)
-        symbol = save_url(urls[0]); final_logo = compose_logo(symbol, team_name); logo_url = f"/static/generated_logos/{final_logo}"
-        with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (1, ?, ?, ?, ?)', (team_name, logo_url, '#0f172a', team_name[:4].upper())); conn.commit()
-        return jsonify({'status': 'success', 'team_name': team_name, 'logo_url': logo_url}), 201
-    except Exception as e: return jsonify({'error': str(e)}), 500
-
-# ==========================================
-# 6. MAIN ROUTY A APLIKACE
-# ==========================================
-@app.route('/export/db')
-@login_required
-def export_db(): return send_file(DB_PATH, as_attachment=True, download_name="the_cup_zaloha.db")
-
-@app.route('/export/csv/<int:t_id>')
-@login_required
-def export_csv(t_id):
-    standings = get_standings(t_id); si = io.StringIO(); cw = csv.writer(si)
-    cw.writerow(['Poradi', 'Tym', 'Zapasu', 'Vyhry', 'Remizy', 'Prohry', 'Skore', 'Golovy_rozdil', 'Body'])
-    for i, s in enumerate(standings, 1): cw.writerow([i, s['name'], s['gp'], s['w'], s['d'], s['l'], f"{s['gf']}:{s['ga']}", s['gd'], s['pts']])
-    return Response(si.getvalue(), mimetype="text/csv", headers={"Content-Disposition": f"attachment;filename=tabulka_turnaje_{t_id}.csv"})
-
-@app.route('/upgrade_pro', methods=['POST'])
-@login_required
-def upgrade_pro():
-    with get_db() as conn: conn.execute('UPDATE users SET is_pro = 1 WHERE id = ?', (session['user_id'],)); conn.commit()
-    flash("Modul PRO Premium byl aktivován."); return redirect(url_for('account'))
-
-@app.route('/')
-def index():
-    if 'user_id' not in session: return render_ui(WELCOME_HTML, active_page='home', hide_nav=True)
-    uid = session['user_id']
-    active_tourneys = get_db().execute('SELECT *, (SELECT COUNT(*) FROM teams WHERE t_id = tournaments.id) as registered_teams FROM tournaments WHERE user_id = ? AND status != "finished" ORDER BY start_date ASC', (uid,)).fetchall()
-    participating_tourneys = get_db().execute('SELECT DISTINCT tr.*, u.username, (SELECT COUNT(*) FROM teams WHERE t_id = tr.id) as registered_teams FROM tournaments tr JOIN users u ON tr.user_id = u.id JOIN teams t ON t.t_id = tr.id JOIN master_teams mt ON t.master_id = mt.id WHERE mt.user_id = ? AND tr.user_id != ? AND tr.status != "finished" ORDER BY tr.start_date ASC', (uid, uid)).fetchall()
-    joinable_public_tourneys = get_db().execute('SELECT tr.*, u.username, (SELECT COUNT(*) FROM teams WHERE t_id = tr.id) as registered_teams FROM tournaments tr JOIN users u ON tr.user_id = u.id WHERE tr.is_public = 1 AND tr.status = "draft" AND tr.user_id != ? AND tr.id NOT IN (SELECT t.t_id FROM teams t JOIN master_teams mt ON t.master_id = mt.id WHERE mt.user_id = ?) AND (SELECT COUNT(*) FROM teams WHERE t_id = tr.id) < tr.max_teams ORDER BY tr.start_date ASC', (uid, uid)).fetchall()
-    stats = {'total_tournaments': len(active_tourneys), 'total_teams': get_db().execute('SELECT COUNT(*) FROM master_teams WHERE user_id = ?', (uid,)).fetchone()[0]}
-    next_match = get_db().execute('SELECT m.*, t1.name as t1_name, t1.logo as t1_logo, t1.color as t1_color, t2.name as t2_name, t2.logo as t2_logo, t2.color as t2_color, tr.name as tr_name FROM matches m JOIN teams t1 ON m.team1_id = t1.id JOIN master_teams mt1 ON t1.master_id = mt1.id JOIN teams t2 ON m.team2_id = t2.id JOIN master_teams mt2 ON t2.master_id = mt2.id JOIN tournaments tr ON m.t_id = tr.id WHERE m.status != "finished" AND tr.status = "active" AND (mt1.user_id = ? OR mt2.user_id = ?) ORDER BY m.round_num ASC, m.id ASC LIMIT 1', (uid, uid)).fetchone()
-    return render_ui(INDEX_HTML, active_tourneys=active_tourneys, participating_tourneys=participating_tourneys, joinable_public_tourneys=joinable_public_tourneys, stats=stats, next_match=next_match, active_page='home')
-
-@app.route('/account')
-def account(): return render_ui(ACCOUNT_HTML, host_url=f"http://{get_local_ip()}:5000", active_page='account')
-
-@app.route('/login', methods=['POST'])
-def login():
-    user = get_db().execute('SELECT * FROM users WHERE username = ?', (request.form['username'],)).fetchone()
-    if user and check_password_hash(user['password'], request.form['password']):
-        session['user_id'] = user['id']; flash(f"Identita ověřena: {user['username']}"); return redirect(session.pop('next_url', url_for('index')))
-    flash("Nesprávné ověřovací údaje."); return redirect(url_for('account'))
-
-@app.route('/register', methods=['POST'])
-def register():
-    try:
-        with get_db() as conn:
-            cur = conn.cursor(); cur.execute('INSERT INTO users (username, password, theme, is_pro) VALUES (?, ?, ?, ?)', (request.form['username'], generate_password_hash(request.form['password']), 'system', 0))
-            session['user_id'] = cur.lastrowid; conn.commit(); flash("Profil zapsán do systému.")
-            return redirect(session.pop('next_url', url_for('index')))
-    except sqlite3.IntegrityError: flash("Uživatelské jméno obsazeno."); return redirect(url_for('account'))
-
-@app.route('/logout')
-def logout(): session.pop('user_id', None); flash("Spojení ukončeno."); return redirect(url_for('account'))
-
-@app.route('/set_theme', methods=['POST'])
-@login_required
-def set_theme():
-    with get_db() as conn: conn.execute('UPDATE users SET theme = ? WHERE id = ?', (request.form['theme'], session['user_id'])); conn.commit()
-    return redirect(request.referrer or url_for('account'))
-
-@app.route('/change_password', methods=['POST'])
-@login_required
-def change_password():
-    user = get_current_user()
-    if not check_password_hash(user['password'], request.form['current_password']): flash("Původní heslo není korektní.")
-    elif request.form['new_password'] != request.form['confirm_password']: flash("Kontrolní součet hesla nesouhlasí.")
-    else:
-        with get_db() as conn: conn.execute('UPDATE users SET password = ? WHERE id = ?', (generate_password_hash(request.form['new_password']), user['id'])); conn.commit(); flash("Bezpečnostní klíč modifikován.")
-    return redirect(url_for('account'))
-
-@app.route('/teams')
-@login_required
-def teams(): return render_ui(TEAMS_HTML, master_teams=get_db().execute('SELECT * FROM master_teams WHERE user_id = ? ORDER BY id DESC', (session['user_id'],)).fetchall(), active_page='teams')
-
-@app.route('/teams/new', methods=['GET', 'POST'])
-@login_required
-def new_team():
-    user = get_current_user()
-    if request.method == "POST":
-        is_ai = request.form.get("is_ai") == "1"
-        if is_ai:
-            if not user['is_pro']: flash("Modul AI Logo Studio vyžaduje aktivní licenci PRO Premium."); return redirect(url_for('account'))
-            team_name = request.form.get("team_name", "").strip()
-            colors = f"Main Body: {request.form.get('color_body','White')}, Outline: {request.form.get('color_outline','Black')}, Fill/Accents: {request.form.get('color_fill','Blue')}"
-            if not team_name: flash("Název týmu je vyžadován."); return redirect(url_for("new_team"))
-            try:
-                prompt = build_prompt(team_name, request.form.get("style", "clean"), colors); urls = pixazo_generate(prompt, width=1024, height=1024)
-                symbol = save_url(urls[0]); final_logo = compose_logo(symbol, team_name); add_meta(final_logo, team_name, "SINGLE", prompt, "Premium")
-                session["logo_studio_last"] = [final_logo]; session["pending_team_name"] = team_name; flash("Logo s transparentním pozadím vygenerováno.")
+                style = request.form.get("style", "clean")
+                prompt_logo = build_logo_prompt(team_name, style, colors)
+                prompt_text = build_text_prompt(team_name, style, colors)
+                
+                urls_logo = pixazo_generate(prompt_logo)
+                file_logo = save_url(urls_logo[0])
+                
+                urls_text = pixazo_generate(prompt_text)
+                file_text = save_url(urls_text[0])
+                
+                fn = compose_two_phases(file_logo, file_text)
+                add_meta(fn, team_name, "TWO_PHASE", f"Logo: {prompt_logo}")
+                
+                session["pending_team_name"] = team_name
+                flash("Dvoufázové AI logo (Symbol + Text) úspěšně vygenerováno.")
             except Exception as e: flash(pixazo_error(e))
             return redirect(url_for("new_team"))
         else:
