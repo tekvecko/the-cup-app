@@ -387,15 +387,26 @@ def teams(): return render_ui(TEAMS_HTML, master_teams=get_db().execute('SELECT 
 def new_team():
     user = get_current_user()
     if request.method == "POST":
-        is_ai = request.form.get("is_ai") == "1"
-        if is_ai:
-            if not user['is_pro']: flash("Vyžaduje PRO Premium."); return redirect(url_for('new_team'))
-            team_name = request.form.get("team_name", "").strip()
-            colors = f"Body: {request.form.get('color_body','White')}, Outline: {request.form.get('color_outline','Black')}, Fill: {request.form.get('color_fill','Blue')}"
+        name = request.form.get("name", "").strip()
+        tag = request.form.get("tag", "").strip().upper()
+        main_color = request.form.get("color", "#3b82f6")
+        logo_type = request.form.get("logo_type", "emoji")
+        
+        if not name:
+            flash("Název týmu je vyžadován.")
+            return redirect(url_for("new_team"))
+            
+        if logo_type == "ai":
+            if not user['is_pro']:
+                flash("AI generátor vyžaduje PRO Premium.")
+                return redirect(url_for('new_team'))
+            
+            colors = f"Main Body: {request.form.get('color_body','White')}, Outline: {request.form.get('color_outline','Black')}, Fill/Accents: {request.form.get('color_fill','Blue')}"
+            style = request.form.get("style", "clean")
+            
             try:
-                style = request.form.get("style", "clean")
-                prompt_logo = build_logo_prompt(team_name, style, colors)
-                prompt_text = build_text_prompt(team_name, style, colors)
+                prompt_logo = build_logo_prompt(name, style, colors)
+                prompt_text = build_text_prompt(name, style, colors)
                 
                 urls_logo = pixazo_generate(prompt_logo)
                 file_logo = save_url(urls_logo[0])
@@ -404,34 +415,28 @@ def new_team():
                 file_text = save_url(urls_text[0])
                 
                 fn = compose_two_phases(file_logo, file_text)
-                add_meta(fn, team_name, "TWO_PHASE", f"Logo: {prompt_logo}")
+                add_meta(fn, name, "TWO_PHASE", f"Logo: {prompt_logo}")
+                logo_val = f"/static/generated_logos/{fn}"
                 
-                session["pending_team_name"] = team_name
-                flash("Dvoufázové AI logo (Symbol + Text) úspěšně vygenerováno.")
-            except Exception as e: flash(pixazo_error(e))
-            return redirect(url_for("new_team"))
+            except Exception as e:
+                flash(pixazo_error(e))
+                return redirect(url_for("new_team"))
         else:
-            try:
-                with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (?, ?, ?, ?, ?)', (session['user_id'], request.form['name'], request.form['logo'], request.form['color'], request.form['tag'].upper())); conn.commit()
-                flash("Tým byl ručně zapsán."); return redirect(url_for('teams'))
-            except sqlite3.IntegrityError: flash("Tento tým je již v registru zapsán.")
+            logo_val = request.form.get("emoji_logo", "⚽")
+            
+        try:
+            with get_db() as conn:
+                conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (?, ?, ?, ?, ?)', 
+                             (session['user_id'], name, logo_val, main_color, tag))
+                conn.commit()
+            flash("Tým byl úspěšně zapsán do registru.")
+            return redirect(url_for('teams'))
+        except sqlite3.IntegrityError:
+            flash("Tento tým je již v registru zapsán.")
+            return redirect(url_for("new_team"))
 
-    files = [x for x in os.listdir(LOGO_DIR) if x.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))]
-    files = sorted(files, key=lambda x: os.path.getmtime(os.path.join(LOGO_DIR, x)), reverse=True)
-    meta_map = {m["filename"]: m for m in load_meta()}
-    pending_team = session.get("pending_team_name", "")
-    filtered_files = [f for f in files if meta_map.get(f, {}).get("team_name") == pending_team]
-    return render_ui(TEAM_NEW_HTML, images=filtered_files, meta_map=meta_map, last_images=session.pop("logo_studio_last", []), styles=STYLES, active_page='teams', pending_team=pending_team)
+    return render_ui(TEAM_NEW_HTML, styles=STYLES, active_page='teams'), styles=STYLES, active_page='teams', pending_team=pending_team)
 
-@app.route('/teams/use/<filename>', methods=['POST'])
-@login_required
-def use_logo(filename):
-    if not os.path.isfile(os.path.join(LOGO_DIR, filename)): flash("Soubor z cache zmizel."); return redirect(url_for("new_team"))
-    meta = next((m for m in load_meta() if m["filename"] == filename), None); team_name = meta["team_name"] if meta else session.get("pending_team_name", "Neznámý tým")
-    try:
-        with get_db() as conn: conn.execute('INSERT INTO master_teams (user_id, name, logo, color, elo, tag) VALUES (?, ?, ?, ?, ?, ?)', (session['user_id'], team_name, f"/static/generated_logos/{filename}", '#1e293b', 1200, team_name[:4].upper())); conn.commit()
-        flash("Tým byl úspěšně integrován s AI logem."); session.pop("pending_team_name", None); return redirect(url_for('teams'))
-    except sqlite3.IntegrityError: flash("Duplicitní zápis."); return redirect(url_for("new_team"))
 
 @app.route('/teams/edit/<int:team_id>', methods=['GET', 'POST'])
 @login_required
