@@ -472,6 +472,15 @@ CHAT_HTML = """<div class="max-w-xl mx-auto w-full flex flex-col h-[75vh]"><div 
 # ==========================================
 # 4. POMOCNÉ FUNKCE A VYKRESLOVÁNÍ
 # ==========================================
+
+def pixazo_error(e):
+    msg = str(e)
+    if "401" in msg: return "Pixazo API klíč byl odmítnut. Zkontrolujte systémovou proměnnou PIXAZO_API_KEY na Renderu."
+    if "402" in msg: return "Nedostatek kreditů na Pixazo API."
+    if "429" in msg: return "Limit požadavků Pixazo API dosažen (příliš mnoho dotazů)."
+    if "list index" in msg: return "Pixazo API nevrátilo žádný obrázek (pravděpodobně chybí API klíč nebo služba neodpovídá)."
+    return f"AI Generátor selhal: {msg}"
+
 def get_current_user(): return get_db().execute('SELECT * FROM users WHERE id = ?', (session.get('user_id'),)).fetchone() if 'user_id' in session else None
 
 def render_ui(html_content, **kwargs):
