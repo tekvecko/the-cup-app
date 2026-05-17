@@ -284,6 +284,33 @@ def service_worker():
 @require_ai_key
 def api_status(): return jsonify({'status': 'online', 'timestamp': datetime.now().isoformat(), 'db_size_kb': round(os.path.getsize(DB_PATH) / 1024, 2) if os.path.exists(DB_PATH) else 0})
 
+@app.route('/api/v1/teams/generate_two_phase', methods=['POST'])
+@login_required
+def api_generate_two_phase():
+    user = get_current_user()
+    if not user['is_pro']: return jsonify({'error': 'Funkce vyžaduje licenci PRO Premium.'}), 403
+    
+    team_name = request.form.get('team_name')
+    prompt_logo = request.form.get('prompt_logo')
+    prompt_text = request.form.get('prompt_text')
+    
+    if not team_name or not prompt_logo or not prompt_text:
+        return jsonify({'error': 'Neplatná payload data.'}), 400
+        
+    try:
+        urls_logo = pixazo_generate(prompt_logo)
+        file_logo = save_url(urls_logo[0])
+        
+        urls_text = pixazo_generate(prompt_text)
+        file_text = save_url(urls_text[0])
+        
+        fn = compose_two_phases(file_logo, file_text)
+        add_meta(fn, team_name, "TWO_PHASE", f"Logo: {prompt_logo}")
+        
+        return jsonify({'status': 'success', 'logo_url': f"/static/generated_logos/{fn}"})
+    except Exception as e:
+        return jsonify({'error': pixazo_error(e)}), 500
+
 @app.route('/api/v1/tournaments/create', methods=['POST'])
 @require_ai_key
 def api_create_tournament():
@@ -397,29 +424,9 @@ def new_team():
             return redirect(url_for("new_team"))
             
         if logo_type == "ai":
-            if not user['is_pro']:
-                flash("AI generátor vyžaduje PRO Premium.")
-                return redirect(url_for('new_team'))
-            
-            colors = f"Main Body: {request.form.get('color_body','White')}, Outline: {request.form.get('color_outline','Black')}, Fill/Accents: {request.form.get('color_fill','Blue')}"
-            style = request.form.get("style", "clean")
-            
-            try:
-                prompt_logo = build_logo_prompt(name, style, colors)
-                prompt_text = build_text_prompt(name, style, colors)
-                
-                urls_logo = pixazo_generate(prompt_logo)
-                file_logo = save_url(urls_logo[0])
-                
-                urls_text = pixazo_generate(prompt_text)
-                file_text = save_url(urls_text[0])
-                
-                fn = compose_two_phases(file_logo, file_text)
-                add_meta(fn, name, "TWO_PHASE", f"Logo: {prompt_logo}")
-                logo_val = f"/static/generated_logos/{fn}"
-                
-            except Exception as e:
-                flash(pixazo_error(e))
+            logo_val = request.form.get("final_ai_logo")
+            if not logo_val:
+                flash("Chyba: Nebylo obdrženo žádné vygenerované AI logo z API.")
                 return redirect(url_for("new_team"))
         else:
             logo_val = request.form.get("emoji_logo", "⚽")
@@ -429,13 +436,12 @@ def new_team():
                 conn.execute('INSERT INTO master_teams (user_id, name, logo, color, tag) VALUES (?, ?, ?, ?, ?)', 
                              (session['user_id'], name, logo_val, main_color, tag))
                 conn.commit()
-            flash("Tým byl úspěšně zapsán do registru.")
+            flash(f"Tým {name} byl úspěšně zapsán do registru.")
             return redirect(url_for('teams'))
         except sqlite3.IntegrityError:
             flash("Tento tým je již v registru zapsán.")
             return redirect(url_for("new_team"))
 
-    # Zajištěný return pro GET metodu
     return render_ui(TEAM_NEW_HTML, styles=STYLES, active_page='teams')
 
 
