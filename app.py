@@ -69,21 +69,32 @@ def infer_mascot(team_name):
         if k in n: return v
     return "creative mascot"
 
+def pixazo_error(e):
+    return f"AI API Info: {str(e)}"
+
 def pixazo_generate(prompt, width=1024, height=1024, steps=4):
     api_key = (app.config.get("PIXAZO_API_KEY") or os.getenv("PIXAZO_API_KEY", "")).strip()
-    if not api_key: raise RuntimeError("API klíč PIXAZO_API_KEY nenalezen.")
-    r = requests.post("https://gateway.pixazo.ai/flux-1-schnell/v1/getData", headers={"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": api_key}, json={"prompt": prompt, "num_steps": steps, "height": height, "width": width}, timeout=180)
-    r.raise_for_status()
-    urls = []
-    def walk(x):
-        if isinstance(x, dict):
-            for k, v in x.items():
-                if k in ("url", "image_url", "output_url") and isinstance(v, str): urls.append(v)
-                else: walk(v)
-        elif isinstance(x, list):
-            for i in x: walk(i)
-    walk(r.json())
-    return urls
+    if not api_key: raise RuntimeError("API klíč PIXAZO_API_KEY nenalezen na serveru.")
+    payload = {"prompt": prompt, "num_steps": int(steps), "height": int(height), "width": int(width)}
+    try:
+        r = requests.post("https://gateway.pixazo.ai/flux-1-schnell/v1/getData", headers={"Content-Type": "application/json", "Ocp-Apim-Subscription-Key": api_key}, json=payload, timeout=180)
+        if r.status_code != 200:
+            raise RuntimeError(f"HTTP {r.status_code}: {r.text}")
+        data = r.json()
+        urls = []
+        def walk(x):
+            if isinstance(x, dict):
+                for k, v in x.items():
+                    if k in ("url", "image_url", "output_url", "media_url", "output") and isinstance(v, str) and v.startswith("http"): urls.append(v)
+                    else: walk(v)
+            elif isinstance(x, list):
+                for i in x: walk(i)
+        walk(data)
+        if not urls:
+            raise RuntimeError(f"Pixazo odpověď: {data}")
+        return urls
+    except Exception as e:
+        raise RuntimeError(str(e))
 
 def save_url(url):
     fn = f"{uuid.uuid4().hex}.png"; r = requests.get(url, timeout=180); r.raise_for_status()
