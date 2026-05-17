@@ -114,8 +114,6 @@ def compose_two_phases(logo_file, text_file):
     LOGO_DIR = os.path.join(os.getcwd(), 'static', 'generated_logos')
     
     def remove_white_bg_flood(img):
-        # Inteligentné Flood Fill zmazanie pozadia zo 4 rohov pro logo maskota
-        # (thresh=40 pro zachování detailů očí)
         ImageDraw.floodfill(img, (0, 0), (255, 255, 255, 0), thresh=40)
         ImageDraw.floodfill(img, (img.width-1, 0), (255, 255, 255, 0), thresh=40)
         ImageDraw.floodfill(img, (0, img.height-1), (255, 255, 255, 0), thresh=40)
@@ -123,49 +121,54 @@ def compose_two_phases(logo_file, text_file):
         return img
 
     def remove_all_white(img):
-        # Pro text zmatníme VŠECHNY bílé pixely s tolerancí
-        # (protože prompt textu explicitně zakazuje symboly a grafiku)
         datas = img.getdata()
         newData = []
         for item in datas:
-            # item je (R, G, B, A)
             r, g, b, a = item
-            # Definovat bílou s tolerancí, např. r, g, b > 230
-            if r > 230 and g > 230 and b > 230:
-                # Udělat transparentní
-                newData.append((255, 255, 255, 0))
-            else:
-                # Zachovat původní barvu
-                newData.append(item)
+            if r > 230 and g > 230 and b > 230: newData.append((255, 255, 255, 0))
+            else: newData.append(item)
         img.putdata(newData)
         return img
 
-    # 1. Otvoriť, zmazať pozadie pro logo (flood fill) a zmenšiť
+    # 1. Zpracovat logo (Zmenšíme ho mírně, aby bylo místo pro překrytí textem)
     img_logo = Image.open(os.path.join(LOGO_DIR, logo_file)).convert("RGBA")
     img_logo = remove_white_bg_flood(img_logo)
-    img_logo.thumbnail((1024, 1024), Image.LANCZOS)
+    img_logo.thumbnail((900, 900), Image.LANCZOS)
     
-    # 2. Otvoriť, zmazať pozadie pro text (all white) a orezať
+    # 2. Zpracovat text a oříznout ho přesně na okraje nápisu
     img_text = Image.open(os.path.join(LOGO_DIR, text_file)).convert("RGBA")
-    img_text = remove_all_white(img_text) # NOVÁ METODA PRO TEXT
-    w, h = img_text.size
-    img_text_cropped = img_text.crop((0, h//2 - 250, w, h//2 + 250))
+    img_text = remove_all_white(img_text)
+    bbox = img_text.getbbox()
+    if bbox: img_text = img_text.crop(bbox)
     
-    # 3. Zložiť na seba na priehľadné plátno
-    canvas = Image.new("RGBA", (1024, 1500), (0, 0, 0, 0))
-    # Zachovat paste s alfa maskou pro text
-    canvas.paste(img_logo, ((1024 - img_logo.width) // 2, 0), img_logo)
-    canvas.paste(img_text_cropped, (0, 1000), img_text_cropped)
+    # Natáhneme text na šířku 850px, aby dominoval přes celou šířku loga
+    text_w = 850
+    text_h = int(text_w * (img_text.height / img_text.width))
+    img_text = img_text.resize((text_w, text_h), Image.LANCZOS)
+    
+    # 3. Zložit vrstvy: Plátno 1024x1024, text překrývá spodek loga
+    canvas = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+    
+    # Vložíme logo mírně nahoru
+    logo_x = (1024 - img_logo.width) // 2
+    logo_y = 20
+    canvas.paste(img_logo, (logo_x, logo_y), img_logo)
+    
+    # Vložíme text přes spodek loga (cca 40 pixelů od dolního okraje plátna)
+    text_x = (1024 - img_text.width) // 2
+    text_y = 1024 - img_text.height - 40
+    canvas.paste(img_text, (text_x, text_y), img_text)
     
     final_name = f"{uuid.uuid4().hex}.png"
     canvas.save(os.path.join(LOGO_DIR, final_name))
     return final_name
+
 def build_logo_prompt(team_name, style, colors):
     mascot = infer_mascot(team_name)
-    return f"Esports mascot icon without any letters, {mascot}. Style: {STYLES.get(style, STYLES['clean'])}. Colors: {colors}. STRICTLY NO TEXT, NO WORDS. Blank solid white background."
+    return f"Esports team mascot graphic. Concept: {mascot} (can be animal, warrior, entity, or object). Style: {STYLES.get(style, STYLES['clean'])}. Colors: {colors}. STRICTLY NO TEXT, NO LETTERS. Centered, solid bold outlines. Blank solid white background."
 
 def build_text_prompt(team_name, style, colors):
-    return f"Typography graphic design, strictly spelling the exact word '{team_name}'. Bold aggressive 3D esports font. Colors: {colors}. NO MASCOTS, NO SYMBOLS. Blank solid white background."
+    return f"Esports team typography logo. The exact word '{team_name}' in bold, thick, aggressive 3D esports font. Placed on a solid curved badge or banner background. Colors: {colors}. STRICTLY NO MASCOTS, NO ANIMALS, ONLY THE TEXT. Blank solid white background."
 
 # ==========================================
 # 3. HTML ŠABLONY (SPRÁVNÉ POŘADÍ DEKLARACÍ)
