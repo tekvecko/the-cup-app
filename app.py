@@ -435,7 +435,7 @@ def new_team():
             flash("Tento tým je již v registru zapsán.")
             return redirect(url_for("new_team"))
 
-    return render_ui(TEAM_NEW_HTML, styles=STYLES, active_page='teams'), styles=STYLES, active_page='teams', pending_team=pending_team)
+        return render_ui(TEAM_NEW_HTML, styles=STYLES, active_page='teams', pending_team=pending_team)
 
 
 @app.route('/teams/edit/<int:team_id>', methods=['GET', 'POST'])
