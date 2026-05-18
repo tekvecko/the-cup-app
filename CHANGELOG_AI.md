@@ -13,3 +13,4 @@ Tento soubor dokumentuje historii zásahů, patchů a strukturálních změn pro
 2026-05-18 \| SCHEMA, TEMPLATES_VIEWS, ROUTES_TOURNAMENTS \| Přidána funkce přímého zvaní hráčů podle jména s přehledem pozvánek na hlavní nástěnce.
 2026-05-18 | TEMPLATES_VIEWS, ROUTES_TOURNAMENTS | Fáze 'draft' přejmenována na 'Oznámení turnaje'. Přidán infobox do detailu a auto-start skript závislý na datu zahájení.
 2026-05-18 | TEMPLATES_VIEWS | Oprava struktury if-else v DETAIL_UI: infobox 'Oznámení turnaje' již neskrývá logiku pro registraci týmů a generování odkazů.
+2026-05-18 | TEMPLATES_VIEWS | Oprava NameError chybějící šablony TEAM_EDIT_HTML pro stránku editace týmu.
