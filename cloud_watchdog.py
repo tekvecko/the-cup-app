@@ -1,43 +1,43 @@
-import os
 import subprocess
-import requests
+import sys
+import argparse
 
-RENDER_API_KEY = os.getenv("RENDER_API_KEY", "tvuj_render_klic")
-SERVICE_ID = os.getenv("RENDER_SERVICE_ID", "srv-cxxxxxxx")
-
-def check_render_status():
-    print("[WATCHDOG] Kontroluji stav Render kontejneru...")
-    url = f"https://api.render.com/v1/services/{SERVICE_ID}/deploys"
-    headers = {"Authorization": f"Bearer {RENDER_API_KEY}"}
-    
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            deploys = response.json()
-            if deploys:
-                latest = deploys[0]['deploy']
-                print(f"[WATCHDOG] Poslední deploy: {latest['status']} (ID: {latest['id']})")
-                return latest['status']
-    except Exception as e:
-        print(f"[WATCHDOG] Chyba při volání Render API: {e}")
-    return "unknown"
-
-def auto_deploy_fix(commit_message="AI Autonomous Fix"):
-    print(f"[WATCHDOG] Zahajuji Auto-Deploy sekvenci: '{commit_message}'")
-    try:
-        subprocess.run(["git", "add", "."], check=True)
-        subprocess.run(["git", "commit", "-m", commit_message], check=True)
-        subprocess.run(["git", "push", "origin", "main"], check=True)
-        print("[WATCHDOG] Kód úspěšně odeslán na GitHub. Render zahajuje build.")
-    except subprocess.CalledProcessError as e:
-        print(f"[WATCHDOG] Chyba při Git operaci. Jsou vůbec nějaké změny k odeslání? Detail: {e}")
+def run_cmd(cmd):
+    result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
+    if result.stdout:
+        print(result.stdout.strip())
+    if result.stderr:
+        print(result.stderr.strip())
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "--deploy":
-        msg = sys.argv[2] if len(sys.argv) > 2 else "AI Autonomous Fix"
-        auto_deploy_fix(msg)
-    else:
-        status = check_render_status()
-        if status == "build_failed":
-            print("[WATCHDOG] 🚨 Render hlásí pád buildu. Čekám na zásah AI agenta...")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--deploy", type=str, default="Auto deploy", help="Zpráva pro commit")
+    args = parser.parse_args()
+
+    print(f"[WATCHDOG] Zahajuji Auto-Deploy sekvenci: '{args.deploy}'")
+    
+    # Pridani zmen
+    run_cmd("git add .")
+    
+    # Commit
+    run_cmd(f'git commit -m "{args.deploy}"')
+    
+    # Získání aktuální větve
+    try:
+        branch = subprocess.check_output("git branch --show-current", shell=True).decode().strip()
+    except subprocess.CalledProcessError:
+        branch = "main"
+        
+    if not branch:
+        branch = "main"
+        
+    print(f"[WATCHDOG] Odesílám kód do větve: {branch}")
+    
+    # Push do spravne vetve
+    push_result = subprocess.run(f"git push origin {branch}", shell=True, text=True, capture_output=True)
+    if push_result.stdout:
+        print(push_result.stdout.strip())
+    if push_result.stderr:
+        print(push_result.stderr.strip())
+        
+    print(f"[WATCHDOG] Kód úspěšně odeslán na GitHub (větev {branch}). Render zahajuje build (pokud je větev sledována).")
