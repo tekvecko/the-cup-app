@@ -10,3 +10,4 @@ Tento soubor dokumentuje historii zásahů, patchů a strukturálních změn pro
 | 2026-05-18 | `SERVICES_AI_HELPERS` | Oprava NameError chybějících pomocných AI funkcí a kompletní restaurování chybějící administrační logiky v turnajovém detailu. |
 | 2026-05-18 | *SYSTEM* | Inicializace podpůrných souborů `PROJECT_MAP.md`, `CHANGELOG_AI.md` a testovací infrastruktury v `tests/`. |
 
+2026-05-18 \| SCHEMA, TEMPLATES_VIEWS, ROUTES_TOURNAMENTS \| Přidána funkce přímého zvaní hráčů podle jména s přehledem pozvánek na hlavní nástěnce.
