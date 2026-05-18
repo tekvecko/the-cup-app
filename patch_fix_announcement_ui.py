@@ -3,13 +3,9 @@ import re
 with open("app.py", "r", encoding="utf-8") as f:
     app_code = f.read()
 
-# Extrakce existujícího bloku TEMPLATES_VIEWS, abychom z něj vzali ostatní šablony, pokud bychom potřebovali.
-# Místo toho rovnou nahradíme pouze obsah DETAIL_UI uvnitř tohoto bloku.
-
-# 1. Nová definice DETAIL_UI
-CORRECTED_DETAIL_UI = """DETAIL_UI = MATCH_MACRO + \"\"\"<div id="live-sync-container" data-tid="{{ tournament.id }}">
+# Definice nové šablony DETAIL_UI pomocí bezpečně formátovaného raw stringu
+NEW_DETAIL_UI = r'''DETAIL_UI = MATCH_MACRO + """<div id="live-sync-container" data-tid="{{ tournament.id }}">
 <div id="export-area" class="w-full pb-4">
-
 <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
     <div class="inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden">
         {% if tournament.banner %}
@@ -277,10 +273,13 @@ function filterMatches(type, val = null) {
 {% if is_knockout_only and tournament.status != 'draft' %}
     document.addEventListener('DOMContentLoaded', () => { filterMatches('playoff'); });
 {% endif %}
-</script>"""\n'''
+</script>"""'''
 
-app_code = re.sub(r'DETAIL_UI = MATCH_MACRO \+ """.*?<\/script>"""\n', CORRECTED_DETAIL_UI, app_code, flags=re.DOTALL)
-
-with open("app.py", "w", encoding="utf-8") as f:
-    f.write(app_code)
-
+match = re.search(r'DETAIL_UI = MATCH_MACRO \+ """.*?<\/script>"""', app_code, flags=re.DOTALL)
+if match:
+    app_code = app_code[:match.start()] + NEW_DETAIL_UI + app_code[match.end():]
+    with open("app.py", "w", encoding="utf-8") as f:
+        f.write(app_code)
+    print("Úspěšně opraveno.")
+else:
+    print("Chyba při hledání DETAIL_UI.")
