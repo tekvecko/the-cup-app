@@ -14,3 +14,4 @@ Tento soubor dokumentuje historii zásahů, patchů a strukturálních změn pro
 2026-05-18 | TEMPLATES_VIEWS, ROUTES_TOURNAMENTS | Fáze 'draft' přejmenována na 'Oznámení turnaje'. Přidán infobox do detailu a auto-start skript závislý na datu zahájení.
 2026-05-18 | TEMPLATES_VIEWS | Oprava struktury if-else v DETAIL_UI: infobox 'Oznámení turnaje' již neskrývá logiku pro registraci týmů a generování odkazů.
 2026-05-18 | TEMPLATES_VIEWS | Oprava NameError chybějící šablony TEAM_EDIT_HTML pro stránku editace týmu.
+2026-05-18 | SYSTEM, CONFIG, TEMPLATES_VIEWS | Smart implementace dodaných grafik (logo a banner) na 11 HTML stránkách dle UX návrhů a úprava AI promptu pro tvorbu bannerů.
