@@ -9,10 +9,21 @@ from datetime import datetime
 # <<< AI_BLOCK:IMPORTS
 
 # >>> AI_BLOCK:CONFIG
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__)
 app.config['SECRET_KEY'] = 'dev_key_cup_esports_2026'
 app.config['DB_NAME'] = 'the_cup_esports.db'
-app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/generated_logos')
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'static', 'generated_logos')
+
+DB_PATH = os.path.join(BASE_DIR, app.config['DB_NAME'])
+LOGO_DIR = app.config['UPLOAD_FOLDER']
+BRAND_DIR = os.path.join(BASE_DIR, 'static', 'brand')
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+META_FILE = os.path.join(DATA_DIR, 'logo_studio_images.json')
+
+for directory in (LOGO_DIR, BRAND_DIR, DATA_DIR):
+    os.makedirs(directory, exist_ok=True)
 
 # Cesty k fixním grafickým podkladům (implementace dodaných obrázků)
 LOGO_PATH = '/static/branding_logo.png'
@@ -546,6 +557,11 @@ def logout(): session.pop('user_id', None); flash("Spojení ukončeno."); return
 @app.route('/account')
 def account(): return render_ui(ACCOUNT_HTML, host_url=f"http://{get_local_ip()}:5000", active_page='account')
 
+@app.route('/export/db')
+@login_required
+def export_db():
+    return send_file(DB_PATH, as_attachment=True, download_name='the_cup_zaloha.db')
+
 @app.route('/set_theme', methods=['POST'])
 @login_required
 def set_theme():
@@ -628,6 +644,31 @@ def delete_team(team_id):
 # <<< AI_BLOCK:ROUTES_TEAMS
 
 # >>> AI_BLOCK:ROUTES_TOURNAMENTS
+@app.route('/export/csv/<int:t_id>')
+@login_required
+def export_csv(t_id):
+    standings = get_standings(t_id)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Poradi', 'Tym', 'Zapasu', 'Vyhry', 'Remizy', 'Prohry', 'Skore', 'Golovy_rozdil', 'Body'])
+    for position, standing in enumerate(standings, 1):
+        writer.writerow([
+            position,
+            standing['name'],
+            standing['gp'],
+            standing['w'],
+            standing['d'],
+            standing['l'],
+            f"{standing['gf']}:{standing['ga']}",
+            standing['gd'],
+            standing['pts'],
+        ])
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment;filename=tabulka_turnaje_{t_id}.csv'},
+    )
+
 def auto_start_tournaments():
     try:
         with get_db() as conn:
