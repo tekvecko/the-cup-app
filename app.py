@@ -509,7 +509,7 @@ def render_ui(html_content, active_page='home', hide_nav=False, **kwargs):
         'web_graphic': WEB_GRAPHIC_PATH,
         'format_date_cz': format_date_cz
     })
-    return render_template_string(BASE_UI, **kwargs)
+    return render_template_string(BASE_UI.replace('CONTENT_PLACEHOLDER', html_content), **kwargs)
 # <<< AI_BLOCK:SERVICES_CORE
 
 # >>> AI_BLOCK:SERVICES_TOURNAMENT
