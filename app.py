@@ -442,6 +442,60 @@ def build_text_prompt(team_name, style, colors):
 # <<< AI_BLOCK:SERVICES_AI_HELPERS
 
 
+# >>> AI_BLOCK:SERVICES_RUNTIME
+def get_current_user():
+    if 'user_id' not in session:
+        return None
+    return get_db().execute(
+        'SELECT * FROM users WHERE id = ?',
+        (session.get('user_id'),),
+    ).fetchone()
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            session['next_url'] = request.url
+            flash("Vyžadována autorizace.")
+            return redirect(url_for('account'))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def log_match_action(m_id, action):
+    user = get_current_user()
+    username = user['username'] if user else "Systém"
+    with get_db() as conn:
+        conn.execute(
+            'INSERT INTO match_logs (m_id, username, action, created_at) VALUES (?, ?, ?, ?)',
+            (m_id, username, action, datetime.now().strftime("%d.%m. %H:%M:%S")),
+        )
+        conn.commit()
+
+
+def get_local_ip():
+    sock = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        return sock.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        if sock is not None:
+            sock.close()
+
+
+def format_date_cz(date_str):
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d').strftime('%d.%m.%Y')
+    except (TypeError, ValueError):
+        return date_str
+# <<< AI_BLOCK:SERVICES_RUNTIME
+
+
 # >>> AI_BLOCK:SERVICES_CORE
 def render_ui(html_content, active_page='home', hide_nav=False, **kwargs):
     kwargs.update({
