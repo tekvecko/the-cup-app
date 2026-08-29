@@ -215,9 +215,27 @@ SEASONS_HTML = """<div class="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-c
     <div class="p-3 bg-blue-600/20 rounded-2xl border border-blue-500/30 text-blue-500 inline-block w-fit"><i data-lucide="archive" class="w-6 h-6 sm:w-8 sm:h-8"></i></div>
     <div><h2 class="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none theme-text-main">Archiv turnajů</h2><p class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Všechny moje sezóny</p></div>
 </div>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">{% for t in tournaments %}
-    <div class="navy-card p-5 sm:p-6 flex flex-col relative group hover:border-blue-500/30 transition-all"><form action="/tournament/{{ t.id }}/delete" method="POST" class="absolute top-3 right-3 sm:top-4 sm:right-4" onsubmit="event.preventDefault(); openModal('Opravdu smazat turnaj ze systému?', this);"><button type="submit" class="text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></form><div class="mb-5 sm:mb-6 pr-6"><span class="text-[8px] sm:text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 inline-block mb-2">Status: {{ t.status }}</span><h3 class="font-black text-lg sm:text-xl leading-tight truncate theme-text-main">{{ t.name }}</h3></div><div class="flex gap-2 border-t border-white/5 pt-4 mt-auto"><a href="/tournament/{{ t.id }}" class="flex-1 bg-slate-800 text-center py-3 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-slate-700 transition-colors theme-text-main"><i data-lucide="shield-check" class="w-3 h-3 sm:w-4 sm:h-4 text-blue-500"></i> Spravovat</a></div></div>
-{% endfor %}</div>"""
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+{% for t in tournaments %}
+    <div class="navy-card overflow-hidden flex flex-col relative group hover:border-blue-500/30 transition-all">
+        <div class="h-32 sm:h-36 bg-slate-950 border-b border-white/5 overflow-hidden">
+            <img src="{{ t.banner or web_graphic }}" alt="Banner turnaje {{ t.name }}" loading="lazy" decoding="async" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='{{ web_graphic }}';">
+        </div>
+        <form action="/tournament/{{ t.id }}/delete" method="POST" class="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 bg-slate-950/70 backdrop-blur-sm rounded-lg" onsubmit="event.preventDefault(); openModal('Opravdu smazat turnaj ze systému?', this);">
+            <button type="submit" class="text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </form>
+        <div class="p-5 sm:p-6 flex flex-col flex-1">
+            <div class="mb-5 sm:mb-6 pr-6">
+                <span class="text-[8px] sm:text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 inline-block mb-2">Status: {{ t.status }}</span>
+                <h3 class="font-black text-lg sm:text-xl leading-tight truncate theme-text-main">{{ t.name }}</h3>
+            </div>
+            <div class="flex gap-2 border-t border-white/5 pt-4 mt-auto">
+                <a href="/tournament/{{ t.id }}" class="flex-1 bg-slate-800 text-center py-3 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-slate-700 transition-colors theme-text-main"><i data-lucide="shield-check" class="w-3 h-3 sm:w-4 sm:h-4 text-blue-500"></i> Spravovat</a>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>"""
 
 HOF_HTML = """<div class="max-w-2xl mx-auto">
     <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
