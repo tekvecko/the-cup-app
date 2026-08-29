@@ -103,7 +103,282 @@ init_db()
 # <<< AI_BLOCK:SCHEMA
 
 # >>> AI_BLOCK:TEMPLATES_BASE
-BASE_UI = """<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#020617"><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>"><script src="https://cdn.tailwindcss.com"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script><script src="https://unpkg.com/lucide@latest"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><title>THE CUP</title><style>body{background-color:#020617;color:#f8fafc;font-family:sans-serif;overflow-x:hidden}.glass{background:rgba(15,23,42,0.8);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.1)}.navy-card{background:#0f172a;border-radius:1.25rem;border:1px solid rgba(255,255,255,0.05);transition:all 0.2s}.bottom-nav{background:rgba(15,23,42,0.95);backdrop-filter:blur(15px);border-top:1px solid rgba(255,255,255,0.1)}.toast{background:#1e293b;border-left:4px solid #3b82f6}input,select{background:#1e293b!important;color:white!important;outline:none}body.light{background-color:#f8fafc;color:#0f172a}body.light .glass{background:rgba(255,255,255,0.85);border-bottom:1px solid rgba(0,0,0,0.05)}body.light .navy-card{background:#ffffff;border:1px solid rgba(0,0,0,0.05)}body.light input,body.light select{background:#f1f5f9!important;color:#0f172a!important}body.light .theme-text-main{color:#0f172a!important}.live-timer{animation:pulse 1s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch}</style></head><body class="min-h-screen pb-28 flex flex-col"><div id="offline-banner" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest text-center py-1.5 z-[9999] shadow-lg">Jste v offline režimu - prohlížíte uložená data</div><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js');});}window.addEventListener('online',()=>document.getElementById('offline-banner').classList.add('hidden'));window.addEventListener('offline',()=>document.getElementById('offline-banner').classList.remove('hidden'));if(!navigator.onLine)document.getElementById('offline-banner').classList.remove('hidden');const userTheme='{{current_user.theme if current_user else "system"}}';function applyTheme(){let isLight=userTheme==='light'||(userTheme==='system'&&!window.matchMedia('(prefers-color-scheme: dark)').matches);if(isLight){document.body.classList.add('light');document.getElementById('meta-theme-color').content="#f8fafc";}else{document.body.classList.remove('light');document.getElementById('meta-theme-color').content="#020617";}}applyTheme();function vibrate(){if(navigator.vibrate)navigator.vibrate(50);}let lastNotifCount=0;</script><div id="custom-modal" class="fixed inset-0 z-[2000] flex items-center justify-center hidden opacity-0 transition-opacity duration-300"><div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div><div class="navy-card relative w-11/12 max-w-sm p-6 transform scale-95 transition-transform duration-300 shadow-2xl" id="custom-modal-content"><div class="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-4 border border-blue-500/20"><i data-lucide="help-circle" class="w-8 h-8"></i></div><h3 class="text-xl font-black italic uppercase text-center mb-2 theme-text-main">Potvrzení</h3><p id="modal-message" class="text-xs text-slate-400 text-center mb-8"></p><div class="flex gap-3"><button onclick="closeModal()" type="button" class="flex-1 bg-slate-800 hover:bg-slate-700 py-4 rounded-xl font-black uppercase text-[10px] theme-text-main transition-colors">Zrušit</button><button onclick="confirmModalAction()" type="button" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black uppercase text-[10px] shadow-lg transition-colors">Potvrdit</button></div></div></div><div id="logo-modal" class="fixed inset-0 z-[4000] bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity" onclick="closeLogoModal()"><div class="relative w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center" onclick="event.stopPropagation()"><button type="button" onclick="closeLogoModal()" class="absolute -top-12 right-0 sm:-right-8 text-slate-400 hover:text-white"><i data-lucide="x" class="w-8 h-8"></i></button><div id="logo-modal-content" class="w-64 h-64 sm:w-80 sm:h-80 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/10 overflow-hidden" style="background-color: #0f172a;"></div></div></div><div id="toast-container" class="fixed top-24 right-4 left-4 md:left-auto md:w-80 z-[1000] space-y-2 pointer-events-none">{% with messages=get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="toast flex items-center justify-between p-4 rounded-xl shadow-2xl"><div class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4 text-blue-500 shrink-0"></i><span class="text-xs font-bold">{{ message }}</span></div><button onclick="this.parentElement.remove()" class="text-slate-500 font-bold p-2 shrink-0">&times;</button></div>{% endfor %}{% endif %}{% endwith %}</div>{% if not hide_nav %}<div class="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none mt-4"><nav id="main-nav-tab" class="glass px-10 py-2.5 rounded-[2rem] border border-white/10 shadow-2xl pointer-events-auto flex flex-col items-center"><span class="uppercase tracking-tighter font-black italic text-blue-500 text-xl drop-shadow-md">THE CUP</span></nav></div>{% endif %}<main class="w-full max-w-[1400px] mx-auto px-3 {% if not hide_nav %}pt-24{% endif %} mt-2 flex-1 flex flex-col" id="main-content">CONTENT_PLACEHOLDER</main>{% if not hide_nav %}<div class="fixed bottom-0 left-0 right-0 bottom-nav z-50 p-2"><div class="flex justify-between items-center max-w-lg mx-auto"><a href="/" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='home' }}"><i data-lucide="home"></i><span class="text-[8px] font-bold uppercase">Domů</span></a>{% if current_user %}<a href="/teams" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='teams' }}"><i data-lucide="users"></i><span class="text-[8px] font-bold uppercase">Týmy</span></a><a href="/create" onclick="vibrate()" class="bg-blue-600 w-10 h-10 flex items-center justify-center rounded-2xl shadow-xl -mt-6 border-4 border-slate-950 active:scale-90"><i data-lucide="plus" class="text-white"></i></a><a href="/seasons" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='seasons' }}"><i data-lucide="trophy"></i><span class="text-[8px] font-bold uppercase">Turnaje</span></a>{% endif %}<a href="/hof" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='hof' }}"><i data-lucide="star"></i><span class="text-[8px] font-bold uppercase">Sláva</span></a><a href="/account" onclick="vibrate()" class="flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='account' }}"><i data-lucide="user"></i><span class="text-[8px] font-bold uppercase">Účet</span></a></div></div>{% endif %}<script>lucide.createIcons();let pendingForm=null;function openLogoModal(content,bgColor){const modal=document.getElementById('logo-modal');const container=document.getElementById('logo-modal-content');container.style.backgroundColor=bgColor;if(content.includes('static/')){container.innerHTML='<img src="'+content+'" class="w-full h-full object-contain p-6">';}else{container.innerHTML='<span class="drop-shadow-xl text-7xl sm:text-9xl">'+content+'</span>';}modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');}function closeLogoModal(){const modal=document.getElementById('logo-modal');modal.classList.add('opacity-0');setTimeout(()=>modal.classList.add('hidden'),300);}function openModal(message,form){document.getElementById('modal-message').innerText=message;pendingForm=form;const modal=document.getElementById('custom-modal');modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');vibrate();}function closeModal(){const modal=document.getElementById('custom-modal');modal.classList.add('opacity-0');setTimeout(()=>{modal.classList.add('hidden');pendingForm=null;},300);}function confirmModalAction(){if(pendingForm)pendingForm.submit();closeModal();vibrate();}document.addEventListener('DOMContentLoaded',()=>{const toasts=document.querySelectorAll('.toast');toasts.forEach(toast=>{setTimeout(()=>{toast.classList.add('hide');setTimeout(()=>toast.remove(),500);},5000);});});function exportImage(elementId){const btn=document.getElementById('export-btn');const origHtml=btn.innerHTML;btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';lucide.createIcons();setTimeout(()=>{html2canvas(document.getElementById(elementId),{backgroundColor:userTheme==='light'?'#f8fafc':'#020617',scale:2}).then(canvas=>{let a=document.createElement('a');a.href=canvas.toDataURL("image/jpeg");a.download='the_cup_export.jpg';a.click();btn.innerHTML=origHtml;lucide.createIcons();vibrate();});},200);}setInterval(()=>{document.querySelectorAll('.live-timer').forEach(el=>{let start=parseInt(el.dataset.start);if(start>0){let diff=Math.floor(Date.now()/1000)-start;if(diff<0)diff=0;let m=Math.floor(diff/60).toString().padStart(2,'0');let s=(diff%60).toString().padStart(2,'0');el.innerText=`${m}:${s}`;}});},1000);let touchstartX=0;let touchendX=0;document.getElementById('swipe-area').addEventListener('touchstart',e=>{touchstartX=e.changedTouches[0].screenX;},{passive:true});document.getElementById('swipe-area').addEventListener('touchend',e=>{touchendX=e.changedTouches[0].screenX;handleSwipe();},{passive:true});function handleSwipe(){if(!document.getElementById('tab-playoffs'))return;let diff=touchstartX-touchendX;if(diff>60){if(!document.getElementById('content-playoffs').classList.contains('hidden')===false){switchTab('playoffs');vibrate();}}else if(diff<-60){if(!document.getElementById('content-groups').classList.contains('hidden')===false){switchTab('groups');vibrate();}}}</script></body></html>"""
+BASE_UI = """<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0"><link rel="manifest" href="/manifest.json"><meta id="meta-theme-color" name="theme-color" content="#020617"><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>"><script src="https://cdn.tailwindcss.com"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script><script src="https://unpkg.com/lucide@latest"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script><title>THE CUP</title><style>
+:root {
+  color-scheme: dark;
+  --app-bg: #020617;
+  --app-bg-soft: #071226;
+  --surface: rgba(15, 23, 42, 0.88);
+  --surface-strong: #0f172a;
+  --surface-raised: #17233b;
+  --field-bg: #18243b;
+  --line: rgba(148, 163, 184, 0.16);
+  --line-strong: rgba(96, 165, 250, 0.32);
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --primary-strong: #2563eb;
+  --primary-soft: rgba(59, 130, 246, 0.14);
+  --primary-glow: rgba(59, 130, 246, 0.24);
+  --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.22);
+  --shadow-nav: 0 12px 36px rgba(0, 0, 0, 0.28);
+}
+* { box-sizing: border-box; }
+html {
+  min-width: 320px;
+  background: var(--app-bg);
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  margin: 0;
+  overflow-x: hidden;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 50% -12rem, rgba(59, 130, 246, 0.18), transparent 28rem),
+    radial-gradient(circle at 105% 38%, rgba(30, 64, 175, 0.10), transparent 30rem),
+    var(--app-bg);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button, input, select, textarea { font: inherit; }
+button, a { touch-action: manipulation; }
+::selection { color: #fff; background: rgba(37, 99, 235, 0.85); }
+:focus-visible {
+  outline: 3px solid rgba(96, 165, 250, 0.72);
+  outline-offset: 3px;
+}
+.glass {
+  background: linear-gradient(180deg, rgba(18, 29, 50, 0.94), rgba(9, 16, 31, 0.90));
+  border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+.navy-card {
+  background: linear-gradient(145deg, rgba(18, 30, 52, 0.96), rgba(10, 18, 34, 0.98));
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-card);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+.toast {
+  color: var(--text);
+  background: rgba(23, 35, 59, 0.98);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--primary);
+  box-shadow: var(--shadow-card);
+}
+input, select, textarea {
+  min-height: 46px;
+  color: var(--text) !important;
+  background: var(--field-bg) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 0.9rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+input::placeholder, textarea::placeholder { color: #64748b; opacity: 1; }
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(96, 165, 250, 0.72) !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
+}
+input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; opacity: 0.62; }
+.app-header {
+  margin-top: 0 !important;
+  padding-top: max(0.85rem, env(safe-area-inset-top));
+  padding-inline: 1rem;
+}
+.brand-pill {
+  min-width: 10.5rem;
+  padding: 0.65rem 1.6rem !important;
+  border-color: rgba(96, 165, 250, 0.20) !important;
+  box-shadow: 0 14px 40px rgba(2, 6, 23, 0.34), 0 0 28px rgba(59, 130, 246, 0.10);
+}
+.brand-pill span { letter-spacing: -0.035em; }
+.app-main {
+  position: relative;
+  padding-inline: clamp(0.9rem, 2.6vw, 1.75rem) !important;
+  animation: page-enter 320ms ease-out both;
+}
+.app-bottom-nav {
+  padding: 0.45rem max(0.55rem, env(safe-area-inset-right)) max(0.45rem, env(safe-area-inset-bottom)) max(0.55rem, env(safe-area-inset-left)) !important;
+}
+.bottom-nav {
+  background: rgba(8, 15, 29, 0.91);
+  border-top: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -14px 38px rgba(2, 6, 23, 0.26);
+}
+.bottom-nav-inner { min-height: 3.85rem; gap: 0.2rem; }
+.nav-item {
+  position: relative;
+  justify-content: center;
+  min-width: 3.25rem;
+  min-height: 3.1rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 1rem;
+  transition: color 160ms ease, opacity 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+.nav-item svg { width: 1.35rem; height: 1.35rem; stroke-width: 2.2; }
+.nav-item span { font-size: 0.55rem !important; letter-spacing: 0.055em; }
+.nav-item.opacity-100 {
+  color: #60a5fa !important;
+  background: var(--primary-soft);
+  opacity: 1 !important;
+}
+.nav-item:active { transform: scale(0.94); }
+.nav-create {
+  width: 3.55rem !important;
+  height: 3.55rem !important;
+  margin-top: -1.5rem !important;
+  border-color: var(--app-bg) !important;
+  border-radius: 1.15rem !important;
+  background: linear-gradient(145deg, #3b82f6, #2563eb) !important;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.42);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.nav-create:active { transform: scale(0.92); }
+.welcome-card {
+  width: 100%;
+  max-width: 72rem;
+  min-height: clamp(31rem, 64vh, 42rem) !important;
+  margin-inline: auto;
+  isolation: isolate;
+  border-radius: clamp(1.5rem, 3vw, 2.25rem) !important;
+}
+.welcome-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  border-radius: inherit;
+  background: linear-gradient(145deg, rgba(96, 165, 250, 0.08), transparent 35%, rgba(37, 99, 235, 0.04));
+}
+.welcome-inner { max-width: 48rem; }
+.primary-action {
+  min-height: 48px;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.30);
+}
+.hero-card {
+  width: min(100%, 40rem) !important;
+  isolation: isolate;
+  border-color: rgba(96, 165, 250, 0.16) !important;
+}
+.hero-media { overflow: hidden; }
+.hero-media img {
+  transform: scale(1.015);
+  filter: saturate(1.08) contrast(1.04);
+}
+.hero-copy {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.92) 42%);
+}
+.stats-grid { align-items: stretch; }
+.stat-card {
+  position: relative;
+  min-height: 6.6rem;
+  overflow: hidden;
+}
+.stat-card::after {
+  position: absolute;
+  top: -2.5rem;
+  right: -2.5rem;
+  width: 7rem;
+  height: 7rem;
+  pointer-events: none;
+  content: "";
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12), transparent 68%);
+}
+.tournament-card { overflow: hidden; }
+.tournament-media { position: relative; background: #07101f; }
+.tournament-media::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(180deg, transparent 48%, rgba(2, 6, 23, 0.35));
+}
+.tournament-media img { transition: transform 320ms ease, filter 320ms ease; }
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.live-timer { animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes page-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+body.light {
+  color-scheme: light;
+  --app-bg: #f4f7fb;
+  --app-bg-soft: #eaf0f8;
+  --surface: rgba(255, 255, 255, 0.90);
+  --surface-strong: #ffffff;
+  --surface-raised: #f8fafc;
+  --field-bg: #f8fafc;
+  --line: rgba(15, 23, 42, 0.10);
+  --line-strong: rgba(37, 99, 235, 0.26);
+  --text: #0f172a;
+  --muted: #64748b;
+  --primary-soft: rgba(37, 99, 235, 0.10);
+  --shadow-card: 0 16px 46px rgba(30, 64, 175, 0.09);
+  --shadow-nav: 0 12px 36px rgba(15, 23, 42, 0.12);
+  background:
+    radial-gradient(circle at 50% -12rem, rgba(59, 130, 246, 0.15), transparent 28rem),
+    radial-gradient(circle at 105% 38%, rgba(147, 197, 253, 0.13), transparent 30rem),
+    var(--app-bg);
+}
+body.light .glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.91));
+  border-color: var(--line);
+}
+body.light .navy-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.98));
+  border-color: var(--line);
+}
+body.light .bottom-nav {
+  background: rgba(255, 255, 255, 0.91);
+  border-color: var(--line);
+  box-shadow: 0 -14px 38px rgba(15, 23, 42, 0.08);
+}
+body.light input, body.light select, body.light textarea { color: var(--text) !important; }
+body.light .theme-text-main { color: var(--text) !important; }
+body.light .bg-slate-800.theme-text-main,
+body.light .bg-slate-900.theme-text-main {
+  color: var(--text) !important;
+  background-color: #eef3fa !important;
+}
+body.light .toast { color: var(--text); background: rgba(255, 255, 255, 0.98); }
+@media (hover: hover) and (pointer: fine) {
+  a.navy-card:hover, .navy-card.group:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-strong);
+    box-shadow: 0 22px 56px rgba(2, 6, 23, 0.28);
+  }
+  .nav-item:hover { color: #60a5fa; background: var(--primary-soft); opacity: 1; }
+  .nav-create:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(37, 99, 235, 0.48); }
+  .tournament-card:hover .tournament-media img { transform: scale(1.045); filter: saturate(1.14) contrast(1.05); }
+}
+@media (max-width: 640px) {
+  .app-main { margin-top: 0 !important; }
+  .brand-pill { min-width: 9.75rem; }
+  .nav-item { min-width: 2.85rem; padding-inline: 0.35rem; }
+  .welcome-card { min-height: min(68vh, 36rem) !important; }
+  .hero-card { border-radius: 1.4rem !important; }
+  .stat-card { min-height: 6.25rem; }
+}
+@media (max-width: 370px) {
+  .nav-item { min-width: 2.55rem; padding-inline: 0.2rem; }
+  .nav-item span { font-size: 0.5rem !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}</style></head><body class="app-body min-h-screen {% if not hide_nav %}pb-28 has-app-nav{% endif %} flex flex-col"><div id="offline-banner" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest text-center py-1.5 z-[9999] shadow-lg">Jste v offline režimu - prohlížíte uložená data</div><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js');});}window.addEventListener('online',()=>document.getElementById('offline-banner').classList.add('hidden'));window.addEventListener('offline',()=>document.getElementById('offline-banner').classList.remove('hidden'));if(!navigator.onLine)document.getElementById('offline-banner').classList.remove('hidden');const userTheme='{{current_user.theme if current_user else "system"}}';const themeQuery=window.matchMedia('(prefers-color-scheme: dark)');function applyTheme(){const isLight=userTheme==='light'||(userTheme==='system'&&!themeQuery.matches);document.body.classList.toggle('light',isLight);const themeMeta=document.getElementById('meta-theme-color');if(themeMeta)themeMeta.content=isLight?'#f4f7fb':'#020617';}applyTheme();if(userTheme==='system'){if(themeQuery.addEventListener)themeQuery.addEventListener('change',applyTheme);else themeQuery.addListener(applyTheme);}function vibrate(){if(navigator.vibrate)navigator.vibrate(50);}let lastNotifCount=0;</script><div id="custom-modal" class="fixed inset-0 z-[2000] flex items-center justify-center hidden opacity-0 transition-opacity duration-300"><div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div><div class="navy-card relative w-11/12 max-w-sm p-6 transform scale-95 transition-transform duration-300 shadow-2xl" id="custom-modal-content"><div class="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-4 border border-blue-500/20"><i data-lucide="help-circle" class="w-8 h-8"></i></div><h3 class="text-xl font-black italic uppercase text-center mb-2 theme-text-main">Potvrzení</h3><p id="modal-message" class="text-xs text-slate-400 text-center mb-8"></p><div class="flex gap-3"><button onclick="closeModal()" type="button" class="flex-1 bg-slate-800 hover:bg-slate-700 py-4 rounded-xl font-black uppercase text-[10px] theme-text-main transition-colors">Zrušit</button><button onclick="confirmModalAction()" type="button" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black uppercase text-[10px] shadow-lg transition-colors">Potvrdit</button></div></div></div><div id="logo-modal" class="fixed inset-0 z-[4000] bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity" onclick="closeLogoModal()"><div class="relative w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center" onclick="event.stopPropagation()"><button type="button" onclick="closeLogoModal()" class="absolute -top-12 right-0 sm:-right-8 text-slate-400 hover:text-white"><i data-lucide="x" class="w-8 h-8"></i></button><div id="logo-modal-content" class="w-64 h-64 sm:w-80 sm:h-80 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/10 overflow-hidden" style="background-color: #0f172a;"></div></div></div><div id="toast-container" class="fixed top-24 right-4 left-4 md:left-auto md:w-80 z-[1000] space-y-2 pointer-events-none">{% with messages=get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="toast flex items-center justify-between p-4 rounded-xl shadow-2xl"><div class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4 text-blue-500 shrink-0"></i><span class="text-xs font-bold">{{ message }}</span></div><button onclick="this.parentElement.remove()" class="text-slate-500 font-bold p-2 shrink-0">&times;</button></div>{% endfor %}{% endif %}{% endwith %}</div>{% if not hide_nav %}<div class="app-header fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none mt-4"><nav id="main-nav-tab" class="brand-pill glass px-10 py-2.5 rounded-[2rem] border border-white/10 shadow-2xl pointer-events-auto flex flex-col items-center" aria-label="THE CUP"><span class="uppercase tracking-tighter font-black italic text-blue-500 text-xl drop-shadow-md">THE CUP</span></nav></div>{% endif %}<main class="app-main w-full max-w-[1400px] mx-auto px-3 {% if not hide_nav %}app-main-with-nav pt-24{% endif %} mt-2 flex-1 flex flex-col" id="main-content">CONTENT_PLACEHOLDER</main>{% if not hide_nav %}<div class="app-bottom-nav fixed bottom-0 left-0 right-0 bottom-nav z-50 p-2"><div class="bottom-nav-inner flex justify-between items-center max-w-lg mx-auto"><a href="/" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='home' }}"><i data-lucide="home"></i><span class="text-[8px] font-bold uppercase">Domů</span></a>{% if current_user %}<a href="/teams" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='teams' }}"><i data-lucide="users"></i><span class="text-[8px] font-bold uppercase">Týmy</span></a><a href="/create" onclick="vibrate()" class="nav-create bg-blue-600 w-10 h-10 flex items-center justify-center rounded-2xl shadow-xl -mt-6 border-4 border-slate-950 active:scale-90" aria-label="Vytvořit turnaj"><i data-lucide="plus" class="text-white"></i></a><a href="/seasons" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='seasons' }}"><i data-lucide="trophy"></i><span class="text-[8px] font-bold uppercase">Turnaje</span></a>{% endif %}<a href="/hof" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='hof' }}"><i data-lucide="star"></i><span class="text-[8px] font-bold uppercase">Sláva</span></a><a href="/account" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='account' }}"><i data-lucide="user"></i><span class="text-[8px] font-bold uppercase">Účet</span></a></div></div>{% endif %}<script>lucide.createIcons();let pendingForm=null;function openLogoModal(content,bgColor){const modal=document.getElementById('logo-modal');const container=document.getElementById('logo-modal-content');container.style.backgroundColor=bgColor;if(content.includes('static/')){container.innerHTML='<img src="'+content+'" class="w-full h-full object-contain p-6">';}else{container.innerHTML='<span class="drop-shadow-xl text-7xl sm:text-9xl">'+content+'</span>';}modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');}function closeLogoModal(){const modal=document.getElementById('logo-modal');modal.classList.add('opacity-0');setTimeout(()=>modal.classList.add('hidden'),300);}function openModal(message,form){document.getElementById('modal-message').innerText=message;pendingForm=form;const modal=document.getElementById('custom-modal');modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');vibrate();}function closeModal(){const modal=document.getElementById('custom-modal');modal.classList.add('opacity-0');setTimeout(()=>{modal.classList.add('hidden');pendingForm=null;},300);}function confirmModalAction(){if(pendingForm)pendingForm.submit();closeModal();vibrate();}document.addEventListener('DOMContentLoaded',()=>{const toasts=document.querySelectorAll('.toast');toasts.forEach(toast=>{setTimeout(()=>{toast.classList.add('hide');setTimeout(()=>toast.remove(),500);},5000);});});function exportImage(elementId){const btn=document.getElementById('export-btn');const origHtml=btn.innerHTML;btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';lucide.createIcons();setTimeout(()=>{html2canvas(document.getElementById(elementId),{backgroundColor:userTheme==='light'?'#f8fafc':'#020617',scale:2}).then(canvas=>{let a=document.createElement('a');a.href=canvas.toDataURL("image/jpeg");a.download='the_cup_export.jpg';a.click();btn.innerHTML=origHtml;lucide.createIcons();vibrate();});},200);}setInterval(()=>{document.querySelectorAll('.live-timer').forEach(el=>{let start=parseInt(el.dataset.start);if(start>0){let diff=Math.floor(Date.now()/1000)-start;if(diff<0)diff=0;let m=Math.floor(diff/60).toString().padStart(2,'0');let s=(diff%60).toString().padStart(2,'0');el.innerText=`${m}:${s}`;}});},1000);let touchstartX=0;let touchendX=0;const swipeArea=document.getElementById('swipe-area');if(swipeArea){swipeArea.addEventListener('touchstart',e=>{touchstartX=e.changedTouches[0].screenX;},{passive:true});swipeArea.addEventListener('touchend',e=>{touchendX=e.changedTouches[0].screenX;handleSwipe();},{passive:true});}function handleSwipe(){if(!document.getElementById('tab-playoffs'))return;let diff=touchstartX-touchendX;if(diff>60){if(!document.getElementById('content-playoffs').classList.contains('hidden')===false){switchTab('playoffs');vibrate();}}else if(diff<-60){if(!document.getElementById('content-groups').classList.contains('hidden')===false){switchTab('groups');vibrate();}}}</script></body></html>"""
 # <<< AI_BLOCK:TEMPLATES_BASE
 
 # >>> AI_BLOCK:TEMPLATES_MACROS
@@ -113,26 +388,26 @@ MATCH_MACRO = """{% macro render_match(m, is_admin, current_user, logs_dict={}, 
 # >>> AI_BLOCK:TEMPLATES_VIEWS
 # UX Implementace grafik: Branding Logo na Welcome, Header na main stránkách.
 
-WELCOME_HTML = """<div class="relative flex-1 flex flex-col items-center justify-center text-center overflow-hidden min-h-[75vh] rounded-3xl navy-card border border-white/5 shadow-2xl">
+WELCOME_HTML = """<div class="welcome-card relative flex-1 flex flex-col items-center justify-center text-center overflow-hidden min-h-[75vh] rounded-3xl navy-card border border-white/5 shadow-2xl">
     <div class="absolute inset-0 z-0 opacity-10 blur-sm scale-105" style="background-image: url('{{ web_graphic }}'); background-size: cover; background-position: center;"></div>
-    <div class="relative z-10 space-y-6 sm:space-y-8 px-4 w-full">
+    <div class="welcome-inner relative z-10 space-y-6 sm:space-y-8 px-4 w-full">
         <div class="inline-block p-1 bg-blue-600/5 rounded-[2rem] border border-blue-500/10 text-blue-500 shadow-2xl shadow-blue-500/10">
             <img src="{{ logo }}" class="w-24 h-24 sm:w-32 sm:h-32 object-contain" alt="THE CUP Logo">
         </div>
         <h1 class="text-5xl sm:text-7xl md:text-8xl font-black italic uppercase tracking-tighter theme-text-main drop-shadow-lg">THE CUP</h1>
         <p class="text-sm sm:text-lg text-slate-500 max-w-lg mx-auto font-bold">Profesionální organizace sportovních turnajů.</p>
-        <div class="pt-6"><a href="/account" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-xl active:scale-95 transition-all">Začít <i data-lucide="arrow-right" class="w-4 h-4"></i></a></div>
+        <div class="pt-6"><a href="/account" class="primary-action inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 sm:px-10 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black uppercase text-xs sm:text-sm tracking-widest shadow-xl active:scale-95 transition-all">Začít <i data-lucide="arrow-right" class="w-4 h-4"></i></a></div>
     </div>
 </div>"""
 
 INDEX_HTML = """<div class="space-y-6 sm:space-y-10">
     <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
-        <div class="inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
-            <div class="w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
+        <div class="hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
+            <div class="hero-media w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
                 <img src="{{ web_graphic }}" class="w-full h-full object-cover opacity-80" alt="Grafika">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
             </div>
-            <div class="p-4 sm:p-5 relative z-10 -mt-6">
+            <div class="hero-copy p-4 sm:p-5 relative z-10 -mt-6">
                 <h2 class="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-md mb-2">Moje Nástěnka</h2>
                 <p class="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-2 font-bold"><i data-lucide="trophy" class="w-3.5 h-3.5 text-blue-500"></i> THE CUP Sezóna 2026</p>
             </div>
@@ -159,9 +434,9 @@ INDEX_HTML = """<div class="space-y-6 sm:space-y-10">
             <span class="flex items-center gap-2">{% if next_match.match_time %}<i data-lucide="clock" class="w-3 h-3"></i> {{ m_time }}{% endif %} {% if next_match.pitch %}<i data-lucide="flag" class="w-3 h-3 ml-2"></i> {{ next_match.pitch }}{% endif %}</span>
         </div>
     </div>{% endif %}
-    <section class="grid grid-cols-2 gap-3 sm:gap-4">
-        <div class="navy-card p-4 sm:p-5 border-blue-500/20 bg-gradient-to-br from-slate-900 to-slate-950 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 truncate">Moje turnaje</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_tournaments }}</p></div><i data-lucide="trophy" class="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 opacity-50"></i></div>
-        <div class="navy-card p-4 sm:p-5 bg-slate-900/50 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 truncate">Můj registr týmů</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_teams }}</p></div><i data-lucide="users" class="w-6 h-6 sm:w-8 sm:h-8 text-slate-500 opacity-50"></i></div>
+    <section class="stats-grid grid grid-cols-2 gap-3 sm:gap-4">
+        <div class="stat-card navy-card p-4 sm:p-5 border-blue-500/20 bg-gradient-to-br from-slate-900 to-slate-950 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 truncate">Moje turnaje</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_tournaments }}</p></div><i data-lucide="trophy" class="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 opacity-50"></i></div>
+        <div class="stat-card navy-card p-4 sm:p-5 bg-slate-900/50 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 truncate">Můj registr týmů</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_teams }}</p></div><i data-lucide="users" class="w-6 h-6 sm:w-8 sm:h-8 text-slate-500 opacity-50"></i></div>
     </section>
     {% if participating_tourneys %}<section>
         <div class="flex items-center gap-2 mb-3 sm:mb-4 px-1"><i data-lucide="play-circle" class="w-4 h-4 text-blue-500 shrink-0"></i><h2 class="text-lg sm:text-xl font-black uppercase italic text-blue-500 tracking-widest truncate">Účastním se</h2></div>
@@ -192,7 +467,7 @@ ACCOUNT_HTML = """<div class="max-w-md mx-auto w-full">{% if current_user %}
             <p class="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-widest font-bold">Organizátor / Hráč • Tipovací body: {{ current_user.bet_points }}</p>
         </div>
     </div>
-    {% if current_user.is_pro %}<div class="navy-card p-4 border-yellow-500/50 bg-yellow-500/10 mb-6 sm:mb-8 text-center shadow-[0_0_15px_rgba(234,179,8,0.1)]"><h3 class="text-yellow-500 font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2"><i data-lucide="crown" class="w-4 h-4"></i> PRO Premium Aktivní</h3></div>{% else %}<div class="navy-card p-5 border-blue-500/30 mb-6 sm:mb-8 text-center relative overflow-hidden"><div class="absolute inset-0 bg-blue-600/5"></div><h3 class="text-white font-black uppercase tracking-widest text-sm mb-2 relative z-10">Přejít na PRO Premium</h3><p class="text-[10px] text-slate-400 mb-4 font-bold relative z-10">Získejte přístup k modulu AI Logo Studio a dalším profesionálním nástrojům.</p><form action="/upgrade_pro" method="POST" class="relative z-10"><button class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black uppercase text-[10px] py-3 rounded-xl w-full tracking-widest transition-colors shadow-lg">Aktivovat PRO</button></form></div>{% endif %}
+    {% if current_user.is_pro %}<div class="navy-card p-4 border-yellow-500/50 bg-yellow-500/10 mb-6 sm:mb-8 text-center shadow-[0_0_15px_rgba(234,179,8,0.1)]"><h3 class="text-yellow-500 font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2"><i data-lucide="crown" class="w-4 h-4"></i> PRO Premium Aktivní</h3></div>{% else %}<div class="navy-card p-5 border-blue-500/30 mb-6 sm:mb-8 text-center relative overflow-hidden"><div class="absolute inset-0 bg-blue-600/5"></div><h3 class="theme-text-main font-black uppercase tracking-widest text-sm mb-2 relative z-10">Přejít na PRO Premium</h3><p class="text-[10px] text-slate-400 mb-4 font-bold relative z-10">Získejte přístup k modulu AI Logo Studio a dalším profesionálním nástrojům.</p><form action="/upgrade_pro" method="POST" class="relative z-10"><button class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black uppercase text-[10px] py-3 rounded-xl w-full tracking-widest transition-colors shadow-lg">Aktivovat PRO</button></form></div>{% endif %}
     <div class="navy-card p-6 border border-green-500/30 bg-green-500/10 mb-6 sm:mb-8"><h3 class="text-xs font-black uppercase text-green-500 mb-4 flex items-center gap-2"><i data-lucide="wifi-off" class="w-4 h-4"></i> Zero-Internet Host Mode</h3><p class="text-[9px] text-slate-400 mb-4 font-bold">Aktivuj Wi-Fi Hotspot. Ostatní se připojí a naskenují kód:</p><div class="bg-white p-2 inline-block rounded-xl mb-4 shadow-lg"><canvas id="host-qr"></canvas></div><p class="text-[10px] font-mono text-green-400 font-bold block">{{ host_url }}</p></div>
     <div class="flex gap-2 mb-6 sm:mb-8"><a href="/export/db" class="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-black uppercase text-[9px] sm:text-[10px] text-center flex justify-center items-center gap-2 transition-colors theme-text-main border border-white/5"><i data-lucide="download" class="w-4 h-4"></i> Záloha DB</a></div>
     <div class="navy-card p-5 sm:p-6 mb-6 sm:mb-8"><h3 class="text-base sm:text-lg font-black uppercase text-slate-100 mb-4 sm:mb-6 tracking-tighter flex items-center gap-2"><i data-lucide="palette" class="w-4 h-4 sm:w-5 sm:h-5 text-blue-500"></i> Nastavení vzhledu</h3><form action="/set_theme" method="POST" class="space-y-4"><select name="theme" class="w-full rounded-xl p-3 text-xs sm:text-sm font-bold border-blue-500/30 cursor-pointer theme-text-main" onchange="this.form.submit()"><option value="system" {% if current_user.theme == 'system' %}selected{% endif %}>Dle systému telefonu</option><option value="light" {% if current_user.theme == 'light' %}selected{% endif %}>Světlý motiv</option><option value="dark" {% if current_user.theme == 'dark' %}selected{% endif %}>Tmavý motiv (Navy)</option></select></form></div>
@@ -214,12 +489,12 @@ TEAM_NEW_HTML = """<div class="max-w-xl mx-auto py-6 w-full"><div class="flex it
 
 CREATE_HTML = """<div class="max-w-xl mx-auto py-6 sm:py-8 text-center w-full">
     <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
-        <div class="inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
-            <div class="w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
+        <div class="hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
+            <div class="hero-media w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
                 <img src="{{ web_graphic }}" class="w-full h-full object-cover opacity-80" alt="Grafika">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
             </div>
-            <div class="p-4 sm:p-5 relative z-10 -mt-6">
+            <div class="hero-copy p-4 sm:p-5 relative z-10 -mt-6">
                 <h2 class="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-md mb-2">Vytvořit turnaj</h2>
                 <p class="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-2 font-bold"><i data-lucide="trophy" class="w-3.5 h-3.5 text-blue-500"></i> Nová Sezóna 2026</p>
             </div>
@@ -237,7 +512,7 @@ CREATE_HTML = """<div class="max-w-xl mx-auto py-6 sm:py-8 text-center w-full">
                 <label class="flex-1 relative"><input type="radio" name="banner_type" value="ai" class="peer sr-only"><div class="p-3 text-center rounded-xl border border-white/10 bg-slate-900/30 cursor-pointer peer-checked:border-yellow-500 peer-checked:bg-yellow-500/10 peer-checked:text-yellow-500 transition-all relative overflow-hidden">{% if not current_user.is_pro %}<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center"><i data-lucide="lock" class="w-4 h-4 text-yellow-500"></i></div>{% endif %}<i data-lucide="image" class="w-5 h-5 mx-auto mb-1 opacity-70"></i><span class="text-[10px] font-black uppercase tracking-widest">AI Banner 👑</span></div></label>
             </div>
         </div>
-        <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-500 py-5 sm:py-6 rounded-xl sm:rounded-2xl text-white font-black uppercase text-[10px] sm:text-sm tracking-widest shadow-xl shadow-blue-900/40 active:scale-95 transition-all flex justify-center items-center gap-2">Vytvořit a naplánovat <i data-lucide="chevron-right" class="w-4 h-4 sm:w-5 sm:h-5"></i></button>
+        <button type="submit" id="submit-btn" class="primary-action w-full bg-blue-600 hover:bg-blue-500 py-5 sm:py-6 rounded-xl sm:rounded-2xl text-white font-black uppercase text-[10px] sm:text-sm tracking-widest shadow-xl shadow-blue-900/40 active:scale-95 transition-all flex justify-center items-center gap-2">Vytvořit a naplánovat <i data-lucide="chevron-right" class="w-4 h-4 sm:w-5 sm:h-5"></i></button>
     </form>
 </div>
 <script>document.getElementById('tournament-form').onsubmit = function(e) { const isAi = document.querySelector('input[name="banner_type"]:checked').value === 'ai'; {% if not current_user.is_pro %} if (isAi) { e.preventDefault(); alert("AI Banner vyžaduje PRO Premium"); return; } {% endif %} const btn = document.getElementById('submit-btn'); if(isAi) { btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mr-2"></i> Generuji AI Banner (až 30s)...'; } else { btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mr-2"></i> Ukládám...'; } btn.classList.add('opacity-80', 'pointer-events-none'); lucide.createIcons(); };</script>"""
@@ -248,8 +523,8 @@ SEASONS_HTML = """<div class="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-c
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 {% for t in tournaments %}
-    <div class="navy-card overflow-hidden flex flex-col relative group hover:border-blue-500/30 transition-all">
-        <div class="h-32 sm:h-36 bg-slate-950 border-b border-white/5 overflow-hidden">
+    <div class="tournament-card navy-card overflow-hidden flex flex-col relative group hover:border-blue-500/30 transition-all">
+        <div class="tournament-media h-32 sm:h-36 bg-slate-950 border-b border-white/5 overflow-hidden">
             <img src="{{ t.banner or web_graphic }}" alt="Banner turnaje {{ t.name }}" loading="lazy" decoding="async" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='{{ web_graphic }}';">
         </div>
         <form action="/tournament/{{ t.id }}/delete" method="POST" class="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 bg-slate-950/70 backdrop-blur-sm rounded-lg" onsubmit="event.preventDefault(); openModal('Opravdu smazat turnaj ze systému?', this);">
@@ -270,19 +545,19 @@ SEASONS_HTML = """<div class="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-c
 
 HOF_HTML = """<div class="max-w-2xl mx-auto">
     <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
-        <div class="inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
-            <div class="w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
+        <div class="hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
+            <div class="hero-media w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
                 <img src="{{ web_graphic }}" class="w-full h-full object-cover opacity-80" alt="Grafika">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
             </div>
-            <div class="p-4 sm:p-5 relative z-10 -mt-6">
+            <div class="hero-copy p-4 sm:p-5 relative z-10 -mt-6">
                 <h2 class="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-md mb-2">Síň Slávy</h2>
                 <p class="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-2 font-bold"><i data-lucide="award" class="w-3.5 h-3.5 text-blue-500"></i> Globální power ranking</p>
             </div>
         </div>
     </div>
     <div class="navy-card overflow-hidden mb-8 shadow-xl"><table class="w-full text-left"><tr class="bg-white/5 text-[9px] uppercase font-black tracking-wider text-slate-400"><th class="p-4">Tým</th><th class="p-4 text-center text-yellow-500">ELO RATING</th></tr>{% for t in teams %}
-        <tr class="border-b border-white/5 hover:bg-white/5"><td class="p-4 flex items-center gap-3"><div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-white/10 cursor-pointer" style="background-color: {{t.color}}" onclick="openLogoModal('{{t.logo}}', '{{t.color}}')">{% if t.logo and 'static' in t.logo %}<img src="{{t.logo}}" class="w-full h-full object-contain p-1.5">{% else %}<span class="text-sm">{{t.logo}}</span>{% endif %}</div><span class="font-black uppercase text-xs text-white">{{t.name}}</span></td><td class="p-4 text-center font-black text-yellow-500 text-lg">{{t.elo}}</td></tr>
+        <tr class="border-b border-white/5 hover:bg-white/5"><td class="p-4 flex items-center gap-3"><div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-white/10 cursor-pointer" style="background-color: {{t.color}}" onclick="openLogoModal('{{t.logo}}', '{{t.color}}')">{% if t.logo and 'static' in t.logo %}<img src="{{t.logo}}" class="w-full h-full object-contain p-1.5">{% else %}<span class="text-sm">{{t.logo}}</span>{% endif %}</div><span class="font-black uppercase text-xs theme-text-main">{{t.name}}</span></td><td class="p-4 text-center font-black text-yellow-500 text-lg">{{t.elo}}</td></tr>
     {% endfor %}</table></div><div class="navy-card p-4"><h3 class="text-[10px] font-black uppercase text-blue-500 tracking-widest mb-4 text-center">Top 10 Sázkařů (Tipovačka)</h3><div class="space-y-2">{% for b in bettors %}
         <div class="flex justify-between items-center bg-slate-900/40 p-3 rounded-xl border border-white/5"><span class="font-black uppercase text-xs text-slate-300">{{loop.index}}. {{ b.username }}</span><span class="text-blue-400 font-black text-sm">{{ b.bet_points }} b</span></div>
     {% endfor %}</div></div>
@@ -290,7 +565,7 @@ HOF_HTML = """<div class="max-w-2xl mx-auto">
 
 DETAIL_UI = MATCH_MACRO + """<div id="live-sync-container" data-tid="{{ tournament.id }}"><div id="export-area" class="w-full pb-4">
 <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
-    <div class="inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
+    <div class="hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
         {% if tournament.banner %}
             <div class="w-full border-b border-white/10 h-48 sm:h-64 relative bg-slate-950 flex items-center justify-center"><img src="{{ tournament.banner }}" class="w-full h-full object-cover opacity-90"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div></div>
             <div class="p-4 sm:p-5 relative z-10 -mt-8">
@@ -342,12 +617,12 @@ JOIN_UI = """<div class="max-w-xl mx-auto py-6 sm:py-12 text-center w-full">
 
 INVITE_HTML = """<div class="max-w-xl mx-auto py-8 sm:py-12 px-4 w-full flex flex-col items-center">
     <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
-        <div class="inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
-            <div class="w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
+        <div class="hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
+            <div class="hero-media w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
                 <img src="{{ web_graphic }}" class="w-full h-full object-cover opacity-80" alt="Grafika">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
             </div>
-            <div class="p-4 sm:p-5 relative z-10 -mt-6">
+            <div class="hero-copy p-4 sm:p-5 relative z-10 -mt-6">
                 <h2 class="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-md mb-2">Pozvánka</h2>
                 <p class="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-2 font-bold"><i data-lucide="qr-code" class="w-3.5 h-3.5 text-blue-500"></i> {{ t_name }}</p>
             </div>

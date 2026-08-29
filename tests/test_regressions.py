@@ -25,6 +25,34 @@ class RuntimeRegressionTests(unittest.TestCase):
         self.assertIn("this.onerror=null", template)
         self.assertIn("object-cover", template)
 
+    def test_visual_polish_contract(self):
+        source = APP_SOURCE.read_text(encoding="utf-8")
+
+        for marker in (
+            'id="meta-theme-color"',
+            'class="app-body',
+            'class="app-header',
+            'class="app-main',
+            'class="app-bottom-nav',
+            'class="welcome-card',
+            'class="hero-card',
+            'class="stat-card',
+            'class="tournament-card',
+            "--shadow-card:",
+            "env(safe-area-inset-bottom)",
+            "@media (prefers-reduced-motion: reduce)",
+        ):
+            self.assertIn(marker, source)
+
+        self.assertIn(
+            "const swipeArea=document.getElementById('swipe-area');if(swipeArea)",
+            source,
+        )
+        self.assertNotIn(
+            "document.getElementById('swipe-area').addEventListener",
+            source,
+        )
+
     def test_bundled_database_and_brand_assets(self):
         source = APP_SOURCE.read_text(encoding="utf-8")
         self.assertIn("DB_FILENAME = 'the_cup_v31.db'", source)
