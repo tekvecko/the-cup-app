@@ -15,7 +15,7 @@ APP_SOURCE = ROOT / "app.py"
 class RuntimeRegressionTests(unittest.TestCase):
     def test_seasons_template_renders_tournament_banner(self):
         source = APP_SOURCE.read_text(encoding="utf-8")
-        match = re.search(r'SEASONS_HTML = """([\\s\\S]*?)"""', source)
+        match = re.search(r'SEASONS_HTML = """(.*?)"""', source, re.DOTALL)
 
         self.assertIsNotNone(match)
         template = match.group(1)
