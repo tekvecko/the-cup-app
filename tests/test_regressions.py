@@ -53,6 +53,34 @@ class RuntimeRegressionTests(unittest.TestCase):
             source,
         )
 
+    def test_tournament_detail_mobile_layout_contract(self):
+        source = APP_SOURCE.read_text(encoding="utf-8")
+        match = re.search(
+            r'DETAIL_UI = MATCH_MACRO \+ """(.*?)"""',
+            source,
+            re.DOTALL,
+        )
+
+        self.assertIsNotNone(match)
+        template = match.group(1)
+
+        for marker in (
+            'class="tournament-detail-shell"',
+            'class="tournament-actions"',
+            'class="match-filter-bar"',
+            'class="standings-card',
+            "standings-optional hidden sm:table-cell",
+            'class="standings-points',
+            "function filterMatches(button, type, val = null)",
+            "filterMatches(this, 'all')",
+            'aria-pressed="true"',
+        ):
+            self.assertIn(marker, template)
+
+        self.assertNotIn("const currentBtn = event.currentTarget", template)
+        self.assertIn("/* Tournament detail */", source)
+        self.assertIn(".standings-optional { display: none !important; }", source)
+
     def test_bundled_database_and_brand_assets(self):
         source = APP_SOURCE.read_text(encoding="utf-8")
         self.assertIn("DB_FILENAME = 'the_cup_v31.db'", source)
