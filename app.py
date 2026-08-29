@@ -348,6 +348,237 @@ body.light .bg-slate-900.theme-text-main {
   background-color: #eef3fa !important;
 }
 body.light .toast { color: var(--text); background: rgba(255, 255, 255, 0.98); }
+
+/* Tournament detail */
+.tournament-detail-shell {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+}
+.tournament-overview {
+  gap: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+.tournament-hero {
+  width: min(100%, 46rem) !important;
+  border-color: rgba(96, 165, 250, 0.20) !important;
+  border-radius: 1.75rem !important;
+}
+.tournament-hero-media {
+  height: clamp(10.5rem, 32vw, 15rem) !important;
+}
+.tournament-hero-content {
+  padding: 1.25rem clamp(1rem, 4vw, 2rem) !important;
+}
+.tournament-hero-content--plain {
+  display: grid;
+  min-height: 11rem;
+  place-items: center;
+  isolation: isolate;
+  overflow: hidden;
+}
+.tournament-hero-content--plain::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(circle at 50% 25%, rgba(59, 130, 246, 0.12), transparent 42%), linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.18));
+}
+.tournament-hero-backdrop {
+  opacity: 0.055 !important;
+  filter: saturate(0.72) contrast(0.9);
+  transform: scale(1.04);
+}
+.tournament-hero-body {
+  width: 100%;
+}
+.tournament-hero-icon {
+  filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.32));
+}
+.tournament-hero-title {
+  font-size: clamp(1.85rem, 5vw, 2.55rem);
+  text-wrap: balance;
+}
+.tournament-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.625rem;
+}
+.tournament-meta-item,
+.tournament-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.56);
+  line-height: 1;
+}
+.tournament-status {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+.tournament-status-active { color: #4ade80; border-color: rgba(74, 222, 128, 0.28); background: rgba(22, 101, 52, 0.16); }
+.tournament-status-draft { color: #60a5fa; border-color: rgba(96, 165, 250, 0.28); background: rgba(37, 99, 235, 0.14); }
+.tournament-status-finished { color: #fbbf24; border-color: rgba(251, 191, 36, 0.28); background: rgba(161, 98, 7, 0.14); }
+.tournament-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(100%, 32rem);
+  gap: 0.55rem;
+}
+.tournament-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 3rem;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(23, 35, 59, 0.78);
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  box-shadow: 0 10px 26px rgba(2, 6, 23, 0.18);
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.tournament-action--tv { color: #60a5fa; border-color: rgba(96, 165, 250, 0.26); }
+.tournament-action--excel { color: #facc15; border-color: rgba(250, 204, 21, 0.24); }
+.tournament-action--share { color: #4ade80; border-color: rgba(74, 222, 128, 0.24); }
+.tournament-action:active { transform: scale(0.96); }
+.match-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  gap: 0.4rem;
+  margin: 0 auto 1rem;
+  padding: 0.42rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: rgba(8, 15, 29, 0.72);
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.16);
+  scrollbar-width: none;
+}
+.match-filter-bar::-webkit-scrollbar { display: none; }
+.match-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  gap: 0.4rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.9rem;
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.match-filter--mine { margin-left: 0.3rem; }
+.match-filter:active { transform: scale(0.96); }
+.tournament-content {
+  gap: clamp(1rem, 2.5vw, 2rem) !important;
+}
+.standings-card {
+  border-radius: 1.5rem !important;
+}
+.standings-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.standings-head { background: rgba(30, 41, 59, 0.72); }
+.standings-row:last-child { border-bottom: 0; }
+.standings-team-cell { min-width: 11rem; }
+.standings-logo {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 18px rgba(2, 6, 23, 0.18);
+}
+.standings-name { min-width: 0; }
+.standings-cell { color: var(--muted); }
+.standings-score { letter-spacing: 0.02em; }
+.standings-points {
+  color: #60a5fa !important;
+  background: rgba(59, 130, 246, 0.055);
+}
+body.light .tournament-meta-item {
+  background: rgba(255, 255, 255, 0.76);
+}
+body.light .tournament-action {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 26px rgba(30, 64, 175, 0.08);
+}
+body.light .match-filter-bar {
+  background: rgba(255, 255, 255, 0.82);
+}
+body.light .standings-head {
+  background: rgba(226, 232, 240, 0.72);
+}
+body.light .standings-points {
+  color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.055);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tournament-action:hover {
+    transform: translateY(-2px);
+    background: rgba(30, 47, 77, 0.92);
+  }
+  body.light .tournament-action:hover { background: #fff; }
+  .match-filter:hover { border-color: var(--line-strong); }
+}
+@media (max-width: 640px) {
+  .tournament-overview { margin-bottom: 0.8rem !important; }
+  .tournament-hero { border-radius: 1.45rem !important; }
+  .tournament-hero-content--plain { min-height: 9.5rem; }
+  .tournament-hero-content { padding: 1.1rem 0.9rem !important; }
+  .tournament-hero-title { font-size: clamp(1.65rem, 8vw, 2.1rem); }
+  .tournament-meta { gap: 0.35rem; }
+  .tournament-meta-item, .tournament-status { padding-inline: 0.52rem; }
+  .tournament-actions { width: 100%; gap: 0.42rem; }
+  .tournament-action {
+    min-height: 3.1rem;
+    gap: 0.32rem;
+    padding-inline: 0.35rem;
+    font-size: 0.56rem;
+  }
+  .match-filter-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    overflow: visible;
+  }
+  .match-filter { width: 100%; padding-inline: 0.45rem; }
+  .match-filter--mine {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
+  .standings-card { border-radius: 1.35rem !important; }
+  .standings-table { table-layout: fixed; }
+  .standings-team-heading, .standings-team-cell { width: 50%; }
+  .standings-played-heading, .standings-cell { width: 12%; }
+  .standings-score-heading, .standings-score { width: 23%; }
+  .standings-points-heading, .standings-points { width: 15%; }
+  .standings-team-cell { min-width: 0; padding: 0.75rem 0.8rem !important; }
+  .standings-cell, .standings-score, .standings-points { padding: 0.75rem 0.25rem !important; }
+  .standings-logo { width: 2.35rem !important; height: 2.35rem !important; }
+  .standings-name { max-width: 7.5rem; font-size: 0.68rem !important; }
+  .standings-optional { display: none !important; }
+}
+
 @media (hover: hover) and (pointer: fine) {
   a.navy-card:hover, .navy-card.group:hover {
     transform: translateY(-2px);
@@ -563,37 +794,80 @@ HOF_HTML = """<div class="max-w-2xl mx-auto">
     {% endfor %}</div></div>
 </div>"""
 
-DETAIL_UI = MATCH_MACRO + """<div id="live-sync-container" data-tid="{{ tournament.id }}"><div id="export-area" class="w-full pb-4">
-<div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
-    <div class="hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
+DETAIL_UI = MATCH_MACRO + """<div id="live-sync-container" class="tournament-detail-shell" data-tid="{{ tournament.id }}"><div id="export-area" class="w-full pb-4">
+<div class="tournament-overview w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
+    <div class="tournament-hero hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
         {% if tournament.banner %}
-            <div class="w-full border-b border-white/10 h-48 sm:h-64 relative bg-slate-950 flex items-center justify-center"><img src="{{ tournament.banner }}" class="w-full h-full object-cover opacity-90"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div></div>
-            <div class="p-4 sm:p-5 relative z-10 -mt-8">
+            <div class="tournament-hero-media w-full border-b border-white/10 h-48 sm:h-64 relative bg-slate-950 flex items-center justify-center"><img src="{{ tournament.banner }}" class="w-full h-full object-cover opacity-90" alt="Banner turnaje {{ tournament.name }}" loading="eager" decoding="async"><div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div></div>
+            <div class="tournament-hero-content p-4 sm:p-5 relative z-10 -mt-8">
         {% else %}
-            <div class="p-4 sm:p-5 relative z-10">
-                <div class="absolute inset-0 opacity-10 rounded-2xl" style="background-image: url('{{ web_graphic }}'); background-size: cover; background-position: center;"></div>
-                <div class="relative z-10 space-y-4">
+            <div class="tournament-hero-content tournament-hero-content--plain p-4 sm:p-5 relative z-10">
+                <div class="tournament-hero-backdrop absolute inset-0 opacity-10 rounded-2xl" style="background-image: url('{{ web_graphic }}'); background-size: cover; background-position: center;" aria-hidden="true"></div>
+                <div class="tournament-hero-body relative z-10 space-y-4">
         {% endif %}
                 {% if tournament.status == 'finished' and podium and podium.first %}
                     <i data-lucide="crown" class="w-8 h-8 text-yellow-500 mx-auto mb-1 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]"></i><h3 class="text-[9px] text-yellow-500 font-black uppercase tracking-widest mb-1">Vítěz Turnaje</h3><h2 class="text-2xl font-black italic uppercase tracking-tighter text-yellow-500 mb-2">{{ podium.first.name }}</h2>
                     <div class="flex justify-center items-end gap-6 sm:gap-8 mt-4 border-t border-white/10 pt-4">{% if podium.second %}<div class="flex flex-col items-center opacity-80"><span class="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">2. místo</span><div class="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 mb-1 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ podium.second.color }}" onclick="openLogoModal('{{podium.second.logo}}', '{{podium.second.color}}')">{% if podium.second.logo and 'static' in podium.second.logo %}<img src="{{podium.second.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm">{{ podium.second.logo }}</span>{% endif %}</div><span class="text-[10px] font-black uppercase theme-text-main truncate max-w-[100px]">{{ podium.second.name }}</span></div>{% endif %}{% if podium.third %}<div class="flex flex-col items-center opacity-70"><span class="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">3. místo</span><div class="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 mb-1 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ podium.third.color }}" onclick="openLogoModal('{{podium.third.logo}}', '{{podium.third.color}}')">{% if podium.third.logo and 'static' in podium.third.logo %}<img src="{{podium.third.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm">{{ podium.third.logo }}</span>{% endif %}</div><span class="text-[10px] font-black uppercase theme-text-main truncate max-w-[100px]">{{ podium.third.name }}</span></div>{% endif %}</div>
                 {% else %}
-                    {% if not tournament.banner %}<i data-lucide="award" class="w-8 h-8 sm:w-10 sm:h-10 text-blue-500 mx-auto mb-1 sm:mb-2"></i>{% endif %}
-                    <h2 class="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter leading-none theme-text-main">{{ tournament.name }}</h2>
+                    {% if not tournament.banner %}<i data-lucide="award" class="tournament-hero-icon w-8 h-8 sm:w-10 sm:h-10 text-blue-500 mx-auto mb-1 sm:mb-2"></i>{% endif %}
+                    <h2 class="tournament-hero-title text-2xl sm:text-3xl font-black italic uppercase tracking-tighter leading-none theme-text-main">{{ tournament.name }}</h2>
                 {% endif %}
-                <p class="text-[10px] sm:text-xs text-slate-500 flex items-center justify-center gap-2 mt-4 font-bold"><i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-500"></i> {{ format_date_cz(tournament.start_date) }} | {{ 'Veřejný' if tournament.is_public else 'Privátní' }}</p>
+                <div class="tournament-meta mt-4 font-bold">
+                    <span class="tournament-meta-item"><i data-lucide="calendar-days" class="w-3.5 h-3.5 text-blue-500"></i>{{ format_date_cz(tournament.start_date) }}</span>
+                    <span class="tournament-meta-item"><i data-lucide="{{ 'globe-2' if tournament.is_public else 'lock-keyhole' }}" class="w-3.5 h-3.5 text-blue-500"></i>{{ 'Veřejný' if tournament.is_public else 'Privátní' }}</span>
+                    <span class="tournament-status tournament-status-{{ tournament.status }}">{{ {'draft': 'Připravuje se', 'active': 'Probíhá', 'finished': 'Ukončeno'}.get(tournament.status, tournament.status) }}</span>
+                </div>
         {% if not tournament.banner %}</div></div>{% endif %}
             </div>
     </div>
-    <div class="flex gap-2"><a href="/tv/{{ tournament.id }}" target="_blank" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase text-blue-400 flex items-center gap-1.5 transition-colors border border-blue-500/20"><i data-lucide="monitor" class="w-4 h-4"></i> TV Režim</a><a href="/export/csv/{{ tournament.id }}" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase text-yellow-400 flex items-center gap-1.5 transition-colors border border-yellow-500/20"><i data-lucide="table" class="w-4 h-4"></i> Excel</a><button type="button" onclick="exportImage('export-area')" id="export-btn" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-[9px] font-black uppercase text-green-400 flex items-center gap-1.5 transition-colors border border-green-500/20"><i data-lucide="camera" class="w-4 h-4"></i>Sdílet</button></div>
+    <div class="tournament-actions" data-html2canvas-ignore>
+        <a href="/tv/{{ tournament.id }}" target="_blank" rel="noopener" class="tournament-action tournament-action--tv" aria-label="Otevřít TV režim"><i data-lucide="monitor" class="w-4 h-4"></i><span>TV režim</span></a>
+        <a href="/export/csv/{{ tournament.id }}" class="tournament-action tournament-action--excel" aria-label="Exportovat tabulku do CSV"><i data-lucide="table-2" class="w-4 h-4"></i><span>Excel</span></a>
+        <button type="button" onclick="exportImage('export-area')" id="export-btn" class="tournament-action tournament-action--share" aria-label="Sdílet turnaj jako obrázek"><i data-lucide="camera" class="w-4 h-4"></i><span>Sdílet</span></button>
+    </div>
 </div>
-{% if tournament.status != 'draft' %}<div class="flex flex-wrap justify-center gap-2 mb-6 w-full" data-html2canvas-ignore id="filter-controls"><button type="button" onclick="filterMatches('all')" class="filter-btn active-filter px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-blue-600 text-white shadow-lg border border-blue-500">Vše</button>{% if not is_knockout_only %}{% for r in range(1, tournament.rounds + 1) %}<button type="button" onclick="filterMatches('round', {{ r }})" class="filter-btn px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-slate-900/50 theme-text-main border border-white/5 hover:border-blue-500/50">Kolo {{ r }}</button>{% endfor %}{% endif %}{% if has_playoffs or is_knockout_only %}<button type="button" onclick="filterMatches('playoff')" class="filter-btn px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-slate-900/50 theme-text-main border border-white/5 hover:border-blue-500/50">Playoff</button>{% endif %}{% if current_user %}<button type="button" onclick="filterMatches('mine', {{ current_user.id }})" class="filter-btn px-4 py-2 rounded-xl font-black text-[9px] sm:text-[10px] uppercase transition-all bg-orange-600/20 text-orange-500 border border-orange-500/30 hover:bg-orange-600/30 ml-2"><i data-lucide="user" class="w-3 h-3 inline"></i> Moje zápasy</button>{% endif %}</div>{% endif %}
-<div id="content-main" class="flex flex-col lg:flex-row gap-6 sm:gap-8 items-start w-full"><div class="w-full lg:w-[380px] xl:w-[420px] lg:sticky lg:top-24 shrink-0">{% if tournament.status == 'draft' %}<div class="bg-blue-600/10 border border-blue-500/20 p-4 sm:p-5 rounded-2xl mb-6 text-center shadow-lg"><i data-lucide="megaphone" class="w-8 h-8 text-blue-500 mx-auto mb-2"></i><h3 class="text-blue-500 font-black uppercase tracking-widest text-sm mb-1">Fáze: Oznámení turnaje</h3><p class="text-slate-400 text-xs font-bold leading-relaxed">Probíhá nábor hráčů a registrace týmů. Turnaj se automaticky vygeneruje a odstartuje <strong class="text-blue-400">{{ format_date_cz(tournament.start_date) }}</strong>, nebo jej může organizátor kdykoliv spustit manuálně.</p></div>
+{% if tournament.status != 'draft' %}
+<div class="match-filter-bar" data-html2canvas-ignore id="filter-controls" role="group" aria-label="Filtr zápasů">
+    <button type="button" data-filter="all" onclick="filterMatches(this, 'all')" aria-pressed="true" class="match-filter filter-btn active-filter bg-blue-600 text-white shadow-lg border border-blue-500"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i><span>Vše</span></button>
+    {% if not is_knockout_only %}{% for r in range(1, tournament.rounds + 1) %}<button type="button" data-filter="round" data-value="{{ r }}" onclick="filterMatches(this, 'round', {{ r }})" aria-pressed="false" class="match-filter filter-btn bg-slate-900/50 theme-text-main border border-white/5 hover:border-blue-500/50"><i data-lucide="circle-dot" class="w-3.5 h-3.5"></i><span>Kolo {{ r }}</span></button>{% endfor %}{% endif %}
+    {% if has_playoffs or is_knockout_only %}<button type="button" data-filter="playoff" onclick="filterMatches(this, 'playoff')" aria-pressed="false" class="match-filter filter-btn bg-slate-900/50 theme-text-main border border-white/5 hover:border-blue-500/50"><i data-lucide="trophy" class="w-3.5 h-3.5"></i><span>Playoff</span></button>{% endif %}
+    {% if current_user %}<button type="button" data-filter="mine" onclick="filterMatches(this, 'mine', {{ current_user.id }})" aria-pressed="false" class="match-filter match-filter--mine filter-btn bg-slate-900/50 text-orange-500 border border-orange-500/30 hover:bg-orange-600/20"><i data-lucide="user-round" class="w-3.5 h-3.5"></i><span>Moje zápasy</span></button>{% endif %}
+</div>
+{% endif %}
+<div id="content-main" class="tournament-content flex flex-col lg:flex-row gap-6 sm:gap-8 items-start w-full"><div class="w-full lg:w-[380px] xl:w-[420px] lg:sticky lg:top-24 shrink-0">{% if tournament.status == 'draft' %}<div class="bg-blue-600/10 border border-blue-500/20 p-4 sm:p-5 rounded-2xl mb-6 text-center shadow-lg"><i data-lucide="megaphone" class="w-8 h-8 text-blue-500 mx-auto mb-2"></i><h3 class="text-blue-500 font-black uppercase tracking-widest text-sm mb-1">Fáze: Oznámení turnaje</h3><p class="text-slate-400 text-xs font-bold leading-relaxed">Probíhá nábor hráčů a registrace týmů. Turnaj se automaticky vygeneruje a odstartuje <strong class="text-blue-400">{{ format_date_cz(tournament.start_date) }}</strong>, nebo jej může organizátor kdykoliv spustit manuálně.</p></div>
 {% if is_admin %}<div class="flex gap-2 mb-6"><a href="/tournament/{{ tournament.id }}/invite" class="bg-blue-600 px-4 py-4 rounded-xl text-[10px] font-black uppercase flex-1 text-center flex items-center justify-center gap-2 text-white"><i data-lucide="qr-code" class="w-4 h-4"></i> Pozvat Týmy</a>{% if teams|length >= 2 %}<a href="/tournament/{{ tournament.id }}/start" class="bg-green-500 text-white px-4 py-4 rounded-xl text-[10px] font-black uppercase flex-1 text-center"><i data-lucide="play" class="w-4 h-4 inline mr-1"></i> Odstartovat</a>{% endif %}</div>{% endif %}<div class="navy-card p-5 mb-6 shadow-xl relative"><div class="text-[9px] text-slate-500 uppercase font-black absolute top-3 right-4">{{ teams|length }}/{{ tournament.max_teams }}</div><h3 class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-4">Registrované Týmy</h3><div class="space-y-2">{% for t in teams %}<div class="bg-slate-900/50 p-2.5 rounded-xl flex items-center justify-between border border-white/5"><div class="flex items-center gap-3 min-w-0 pr-2"><div class="w-8 h-8 rounded flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ t.color }}" onclick="openLogoModal('{{t.logo}}', '{{t.color}}')">{% if t.logo and 'static' in t.logo %}<img src="{{t.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm drop-shadow-md">{{ t.logo }}</span>{% endif %}</div><span class="text-[10px] font-bold uppercase theme-text-main truncate">{{ t.name }} {% if tournament.group_count > 1 and not is_knockout_only %}<span class="text-[8px] text-blue-500 ml-1">(Sk. {{ t.group_name }})</span>{% endif %}</span></div>{% if is_admin %}<form action="/tournament/{{ tournament.id }}/remove_team/{{ t.id }}" method="POST" onsubmit="event.preventDefault(); openModal('Opravdu vyřadit tým z turnaje?', this);"><button class="text-red-500 hover:bg-red-500/20 p-1.5 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></form>{% endif %}</div>{% endfor %}</div>
 {% if is_admin %}<div class="mt-4 pt-4 border-t border-white/5"><h4 class="text-[9px] font-black text-slate-500 uppercase mb-2">Přidat můj tým</h4><div class="max-h-32 overflow-y-auto space-y-1 pr-1">{% for mt in master_teams %}<form action="/tournament/{{ tournament.id }}/add_existing/{{ mt.id }}" method="POST"><button class="w-full bg-slate-900/50 p-2 rounded-lg flex items-center justify-between border border-white/5 hover:border-blue-500/50"><span class="text-[9px] font-bold uppercase truncate theme-text-main"><span class="mr-1">{% if mt.logo and 'static' in mt.logo %}<img src="{{mt.logo}}" class="w-4 h-4 inline object-contain">{% else %}{{ mt.logo }}{% endif %}</span> {{ mt.name }}</span><span class="text-[10px] text-blue-500 font-bold">＋</span></button></form>{% endfor %}</div></div>{% endif %}</div>{% endif %}
 {% if is_admin %}<div class="navy-card p-5 mb-6 shadow-xl" data-html2canvas-ignore><h3 class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shield" class="w-3 h-3 text-blue-500"></i> Nastavení Rozhodčích</h3><form action="/tournament/{{ tournament.id }}/referees" method="POST" class="flex flex-col gap-2"><input type="text" name="referees" value="{{ tournament.referees }}" placeholder="Napiš jména (např. Petr, Karel)..." class="w-full rounded-xl p-3 text-xs font-bold theme-text-main bg-slate-900/50"><button class="bg-slate-800 py-2 rounded-xl text-[9px] font-black uppercase theme-text-main border border-white/5">Uložit rozhodčí</button></form></div>{% endif %}
 {% if is_admin and tournament.status == 'active' %}<div class="navy-card p-5 mb-6 shadow-xl border border-blue-500/30" data-html2canvas-ignore><h3 class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="settings" class="w-3 h-3"></i> Správa turnaje</h3><div class="flex flex-col gap-2">{% if not is_knockout_only %}<form action="/tournament/{{ tournament.id }}/playoff" method="POST"><button class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl text-white font-black text-[10px] uppercase transition-colors">Vygenerovat Playoff</button></form>{% endif %}<form action="/tournament/{{ tournament.id }}/finish" method="POST" onsubmit="event.preventDefault(); openModal('Opravdu ukončit turnaj?', this);"><button class="w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-black text-[10px] uppercase text-red-400 border border-red-500/20 transition-colors">Ukončit turnaj</button></form></div></div>{% endif %}
-{% if standings and not is_knockout_only %}<div class="navy-card overflow-hidden shadow-2xl mb-6 table-responsive bg-slate-900/30 view-carousel view-active" id="view-standings"><table class="w-full text-left whitespace-nowrap"><tr class="bg-slate-800/80 text-[8px] text-slate-400 uppercase font-black border-b border-white/5 cursor-help"><th class="p-4">Tým</th><th class="p-4 text-center" onclick="showLegend(event, 'Zápasy celkem')">Z</th><th class="p-4 text-center" onclick="showLegend(event, 'Výhry (3 body)')">V</th><th class="p-4 text-center" onclick="showLegend(event, 'Remízy (1 bod)')">R</th><th class="p-4 text-center" onclick="showLegend(event, 'Prohry (0 bodů)')">P</th><th class="p-4 text-center" onclick="showLegend(event, 'Skóre (Vstřelené : Inkasované)')">Skóre</th><th class="p-4 text-center" onclick="showLegend(event, 'Gólový rozdíl')">GR</th><th class="p-4 text-center text-blue-500" onclick="showLegend(event, 'Body celkem')">B</th></tr>{% set ns = namespace(last_group='') %}{% for s in standings %}{% if tournament.group_count > 1 and s.group != ns.last_group %}<tr class="bg-blue-900/20"><td colspan="8" class="p-2 text-center text-[9px] font-black text-blue-400 uppercase tracking-widest border-b border-white/5">Skupina {{ s.group }}</td></tr>{% set ns.last_group = s.group %}{% endif %}<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-4 flex items-center gap-3"><div class="w-8 h-8 rounded flex items-center justify-center shrink-0 border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ s.color }}" onclick="openLogoModal('{{s.logo}}', '{{s.color}}')">{% if s.logo and 'static' in s.logo %}<img src="{{s.logo}}" class="w-full h-full object-contain p-1">{% else %}<span class="text-sm drop-shadow-md">{{ s.logo }}</span>{% endif %}</div><span class="font-black uppercase text-xs theme-text-main truncate max-w-[120px]">{{ s.name }}</span></td><td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.gp }}</td><td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.w }}</td><td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.d }}</td><td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.l }}</td><td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.gf }}:{{ s.ga }}</td><td class="p-4 text-center opacity-70 text-[10px] font-bold theme-text-main">{{ s.gd }}</td><td class="p-4 text-center text-blue-500 font-black text-lg">{{ s.pts }}</td></tr>{% endfor %}</table></div>{% endif %}</div>
+{% if standings and not is_knockout_only %}
+<div class="standings-card navy-card overflow-hidden shadow-2xl mb-6 table-responsive bg-slate-900/30 view-carousel view-active" id="view-standings">
+    <table class="standings-table w-full text-left whitespace-nowrap">
+        <thead><tr class="standings-head bg-slate-800/80 text-[8px] text-slate-400 uppercase font-black border-b border-white/5 cursor-help">
+            <th class="standings-team-heading p-3 sm:p-4">Tým</th>
+            <th class="standings-played-heading p-3 sm:p-4 text-center" onclick="showLegend(event, 'Zápasy celkem')" aria-label="Zápasy celkem">Z</th>
+            <th class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center" onclick="showLegend(event, 'Výhry (3 body)')" aria-label="Výhry">V</th>
+            <th class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center" onclick="showLegend(event, 'Remízy (1 bod)')" aria-label="Remízy">R</th>
+            <th class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center" onclick="showLegend(event, 'Prohry (0 bodů)')" aria-label="Prohry">P</th>
+            <th class="standings-score-heading p-3 sm:p-4 text-center" onclick="showLegend(event, 'Skóre (Vstřelené : Inkasované)')">Skóre</th>
+            <th class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center" onclick="showLegend(event, 'Gólový rozdíl')" aria-label="Gólový rozdíl">GR</th>
+            <th class="standings-points-heading p-3 sm:p-4 text-center text-blue-500" onclick="showLegend(event, 'Body celkem')" aria-label="Body celkem">B</th>
+        </tr></thead>
+        <tbody>{% set ns = namespace(last_group='') %}{% for s in standings %}
+            {% if tournament.group_count > 1 and s.group != ns.last_group %}<tr class="bg-blue-900/20"><td colspan="8" class="p-2 text-center text-[9px] font-black text-blue-400 uppercase tracking-widest border-b border-white/5">Skupina {{ s.group }}</td></tr>{% set ns.last_group = s.group %}{% endif %}
+            <tr class="standings-row border-b border-white/5 hover:bg-white/5">
+                <td class="standings-team-cell p-3 sm:p-4"><div class="flex items-center gap-2.5 sm:gap-3 min-w-0"><div class="standings-logo w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-transform" style="background-color: {{ s.color }}" onclick="openLogoModal('{{s.logo}}', '{{s.color}}')">{% if s.logo and 'static' in s.logo %}<img src="{{s.logo}}" class="w-full h-full object-contain p-1" alt="Logo {{ s.name }}" loading="lazy" decoding="async">{% else %}<span class="text-sm drop-shadow-md">{{ s.logo }}</span>{% endif %}</div><span class="standings-name font-black uppercase text-[11px] sm:text-xs theme-text-main truncate">{{ s.name }}</span></div></td>
+                <td class="standings-cell p-3 sm:p-4 text-center text-[10px] font-bold theme-text-main">{{ s.gp }}</td>
+                <td class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center text-[10px] font-bold theme-text-main">{{ s.w }}</td>
+                <td class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center text-[10px] font-bold theme-text-main">{{ s.d }}</td>
+                <td class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center text-[10px] font-bold theme-text-main">{{ s.l }}</td>
+                <td class="standings-score p-3 sm:p-4 text-center text-[10px] font-black theme-text-main">{{ s.gf }}:{{ s.ga }}</td>
+                <td class="standings-optional hidden sm:table-cell p-3 sm:p-4 text-center text-[10px] font-bold theme-text-main">{{ s.gd }}</td>
+                <td class="standings-points p-3 sm:p-4 text-center text-blue-500 font-black text-base sm:text-lg">{{ s.pts }}</td>
+            </tr>
+        {% endfor %}</tbody>
+    </table>
+</div>
+{% endif %}</div>
     <div class="flex-1 w-full min-w-0" id="match-container"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 view-carousel" id="groups-grid">{% for m in group_matches %}{{ render_match(m, is_admin, current_user, logs, preds.get(m.id)) }}{% endfor %}</div><div class="w-full overflow-x-auto py-4 sm:py-8 table-responsive view-carousel hidden" id="playoff-bracket"><div class="flex flex-row justify-start lg:justify-center items-stretch gap-12 sm:gap-16 min-w-max px-4">{% set playoff_rounds = [] %}{% for m in playoff_matches %}{% if m.round_num not in playoff_rounds %}{% set _ = playoff_rounds.append(m.round_num) %}{% endif %}{% endfor %}{% set ns2 = namespace(max_round=0) %}{% if playoff_rounds %}{% set ns2.max_round = playoff_rounds | max %}{% endif %}
                 {% if playoff_matches|length >= 2 %}<div class="flex flex-col justify-around gap-12 w-64 sm:w-80 shrink-0 relative py-8"><div class="bracket-line-right hidden md:block"></div>{% for m in playoff_matches if m.round_num < 98 %}{{ render_match(m, is_admin, current_user, logs, preds.get(m.id)) }}{% endfor %}</div>{% endif %}
                 <div class="flex flex-col justify-center gap-8 w-72 sm:w-[22rem] shrink-0 relative z-10">{% set final_m = playoff_matches | selectattr('round_num', 'equalto', 100) | list %}{% set bronze_m = playoff_matches | selectattr('round_num', 'equalto', 98) | list %}
@@ -602,7 +876,62 @@ DETAIL_UI = MATCH_MACRO + """<div id="live-sync-container" data-tid="{{ tourname
                     {% if not final_m and not bronze_m and is_admin and tournament.status == 'active' and tournament.stage == 'playoffs' %}<div class="navy-card p-6 border-dashed border-2 border-slate-700/50 flex flex-col items-center justify-center text-center bg-slate-900/30"><i data-lucide="server" class="w-8 h-8 text-blue-500 mb-3 opacity-80"></i><span class="text-blue-400 font-bold text-xs uppercase tracking-widest">Generování pavouka</span><form action="/tournament/{{ tournament.id }}/next_round" method="POST" class="mt-4 w-full"><button class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-900/30 transition-colors">Vygenerovat další kolo</button></form><form action="/tournament/{{ tournament.id }}/generate_final" method="POST" class="mt-2 w-full"><button class="w-full bg-yellow-500 hover:bg-yellow-400 py-3 rounded-xl text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-lg transition-colors">Vygenerovat Finále & o 3. místo</button></form></div>{% endif %}
                 </div>
 </div></div></div></div></div></div>
-<script>let currentUid = {{ current_user.id if current_user else 0 }}; let currentMyTeams = {{ my_team_ids | tojson | safe if my_team_ids else '[]' }}; function filterMatches(type, val = null) { document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500', 'bg-orange-600/20'); b.classList.add('bg-slate-900/50', 'theme-text-main', 'border-white/5'); if(b.innerHTML.includes('Moje zápasy')) b.classList.add('text-orange-500', 'border-orange-500/30'); }); const currentBtn = event.currentTarget; currentBtn.classList.remove('bg-slate-900/50', 'theme-text-main', 'border-white/5', 'text-orange-500'); if (type === 'mine') { currentBtn.classList.add('bg-orange-600/20', 'text-orange-500', 'border-orange-500/30'); } else { currentBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500'); } const groupsGrid = document.getElementById('groups-grid'); const playoffBracket = document.getElementById('playoff-bracket'); const cards = document.querySelectorAll('.match-card'); if(type === 'playoff') { groupsGrid.classList.add('hidden'); playoffBracket.classList.remove('hidden'); } else { playoffBracket.classList.add('hidden'); groupsGrid.classList.remove('hidden'); cards.forEach(card => { if(card.dataset.stage === 'playoffs') return; let show = false; if(type === 'all') show = true; else if(type === 'round' && card.dataset.round == val) show = true; else if(type === 'mine') { let t1 = parseInt(card.dataset.team1); let t2 = parseInt(card.dataset.team2); if(currentMyTeams.includes(t1) || currentMyTeams.includes(t2)) show = true; } card.style.display = show ? 'flex' : 'none'; }); } } {% if is_knockout_only and tournament.status != 'draft' %} document.addEventListener('DOMContentLoaded', () => { filterMatches('playoff'); }); {% endif %}</script>"""
+<script>
+const currentMyTeams = {{ my_team_ids | tojson | safe if my_team_ids else '[]' }};
+
+function filterMatches(button, type, val = null) {
+    document.querySelectorAll('.filter-btn').forEach(candidate => {
+        candidate.classList.remove('active-filter', 'bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500', 'bg-orange-600/20', 'text-orange-500', 'border-orange-500/30');
+        candidate.classList.add('bg-slate-900/50', 'theme-text-main', 'border-white/5');
+        candidate.setAttribute('aria-pressed', 'false');
+        if (candidate.dataset.filter === 'mine') {
+            candidate.classList.add('text-orange-500', 'border-orange-500/30');
+        }
+    });
+
+    const currentButton = button || document.querySelector('.filter-btn[data-filter="' + type + '"]');
+    if (currentButton) {
+        currentButton.classList.add('active-filter');
+        currentButton.classList.remove('bg-slate-900/50', 'theme-text-main', 'border-white/5', 'text-orange-500', 'border-orange-500/30');
+        currentButton.setAttribute('aria-pressed', 'true');
+        if (type === 'mine') {
+            currentButton.classList.add('bg-orange-600/20', 'text-orange-500', 'border-orange-500/30');
+        } else {
+            currentButton.classList.add('bg-blue-600', 'text-white', 'shadow-lg', 'border-blue-500');
+        }
+    }
+
+    const groupsGrid = document.getElementById('groups-grid');
+    const playoffBracket = document.getElementById('playoff-bracket');
+    const cards = document.querySelectorAll('.match-card');
+
+    if (type === 'playoff') {
+        groupsGrid.classList.add('hidden');
+        playoffBracket.classList.remove('hidden');
+        return;
+    }
+
+    playoffBracket.classList.add('hidden');
+    groupsGrid.classList.remove('hidden');
+    cards.forEach(card => {
+        if (card.dataset.stage === 'playoffs') return;
+        let show = type === 'all';
+        if (type === 'round' && card.dataset.round == val) show = true;
+        if (type === 'mine') {
+            const teamOne = parseInt(card.dataset.team1);
+            const teamTwo = parseInt(card.dataset.team2);
+            show = currentMyTeams.includes(teamOne) || currentMyTeams.includes(teamTwo);
+        }
+        card.style.display = show ? 'flex' : 'none';
+    });
+}
+
+{% if is_knockout_only and tournament.status != 'draft' %}
+document.addEventListener('DOMContentLoaded', () => {
+    filterMatches(document.querySelector('.filter-btn[data-filter="playoff"]'), 'playoff');
+});
+{% endif %}
+</script>"""
 
 JOIN_UI = """<div class="max-w-xl mx-auto py-6 sm:py-12 text-center w-full">
     <div class="mb-6 sm:mb-8 flex flex-col items-center">
