@@ -54,6 +54,17 @@ class RuntimeRegressionTests(unittest.TestCase):
             assert "/export/csv/<int:t_id>" in routes
 
             client = module.app.test_client()
+
+            with module.app.test_request_context("/render-probe"):
+                rendered = module.render_ui(
+                    '<section id="render-probe">{{ probe_value }}</section>',
+                    probe_value="page-content-ok",
+                    hide_nav=True,
+                )
+            assert 'id="render-probe"' in rendered
+            assert "page-content-ok" in rendered
+            assert "CONTENT_PLACEHOLDER" not in rendered
+
             unauthenticated = client.get("/export/db", follow_redirects=False)
             assert unauthenticated.status_code == 302
             assert unauthenticated.headers["Location"].endswith("/account")
