@@ -1,3 +1,4 @@
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,16 @@ APP_SOURCE = ROOT / "app.py"
 
 
 class RuntimeRegressionTests(unittest.TestCase):
+    def test_seasons_template_renders_tournament_banner(self):
+        source = APP_SOURCE.read_text(encoding="utf-8")
+        match = re.search(r'SEASONS_HTML = """([\\s\\S]*?)"""', source)
+
+        self.assertIsNotNone(match)
+        template = match.group(1)
+        self.assertIn("{{ t.banner or web_graphic }}", template)
+        self.assertIn("this.onerror=null", template)
+        self.assertIn("object-cover", template)
+
     def test_runtime_helpers_and_export_routes(self):
         probe = textwrap.dedent(
             """
