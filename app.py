@@ -1,7 +1,7 @@
 # >>> AI_BLOCK:IMPORTS
-from flask import Flask, render_template_string, request, redirect, url_for, flash, session, make_response, jsonify, send_file, Response
+from flask import Flask, render_template_string, request, redirect, url_for, flash, session, make_response, jsonify, send_file, send_from_directory, Response
 from werkzeug.exceptions import HTTPException
-import sqlite3, socket, os, uuid, time, random, io, csv, math, json, requests
+import sqlite3, socket, os, uuid, time, random, io, csv, math, json, requests, shutil
 from PIL import Image, ImageDraw, ImageFont
 from functools import wraps, cmp_to_key
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,26 +10,51 @@ from datetime import datetime
 
 # >>> AI_BLOCK:CONFIG
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RUNTIME_DATA_DIR = os.path.abspath(os.environ.get('THE_CUP_DATA_DIR', BASE_DIR))
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'dev_key_cup_esports_2026'
-app.config['DB_NAME'] = 'the_cup_esports.db'
-app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'static', 'generated_logos')
+DB_FILENAME = 'the_cup_v31.db'
+BUNDLED_DB_PATH = os.path.join(BASE_DIR, DB_FILENAME)
+BUNDLED_LOGO_DIR = os.path.join(BASE_DIR, 'static', 'generated_logos')
+BUNDLED_DATA_DIR = os.path.join(BASE_DIR, 'data')
 
-DB_PATH = os.path.join(BASE_DIR, app.config['DB_NAME'])
-LOGO_DIR = app.config['UPLOAD_FOLDER']
-BRAND_DIR = os.path.join(BASE_DIR, 'static', 'brand')
-DATA_DIR = os.path.join(BASE_DIR, 'data')
-META_FILE = os.path.join(DATA_DIR, 'logo_studio_images.json')
+if RUNTIME_DATA_DIR == BASE_DIR:
+    DB_PATH = BUNDLED_DB_PATH
+    LOGO_DIR = BUNDLED_LOGO_DIR
+    DATA_DIR = BUNDLED_DATA_DIR
+    BRAND_DIR = os.path.join(BASE_DIR, 'static', 'brand')
+else:
+    os.makedirs(RUNTIME_DATA_DIR, exist_ok=True)
+    DB_PATH = os.path.join(RUNTIME_DATA_DIR, DB_FILENAME)
+    LOGO_DIR = os.path.join(RUNTIME_DATA_DIR, 'generated_logos')
+    DATA_DIR = os.path.join(RUNTIME_DATA_DIR, 'data')
+    BRAND_DIR = os.path.join(RUNTIME_DATA_DIR, 'brand')
+
+    if not os.path.exists(DB_PATH) and os.path.exists(BUNDLED_DB_PATH):
+        shutil.copy2(BUNDLED_DB_PATH, DB_PATH)
 
 for directory in (LOGO_DIR, BRAND_DIR, DATA_DIR):
     os.makedirs(directory, exist_ok=True)
 
-# Cesty k fixním grafickým podkladům (implementace dodaných obrázků)
-LOGO_PATH = '/static/branding_logo.png'
-WEB_GRAPHIC_PATH = '/static/web_graphic.png'
+if LOGO_DIR != BUNDLED_LOGO_DIR and os.path.isdir(BUNDLED_LOGO_DIR):
+    for filename in os.listdir(BUNDLED_LOGO_DIR):
+        source_path = os.path.join(BUNDLED_LOGO_DIR, filename)
+        target_path = os.path.join(LOGO_DIR, filename)
+        if os.path.isfile(source_path) and not os.path.exists(target_path):
+            shutil.copy2(source_path, target_path)
 
-# Pixazo API Styly upravené pro ladění s novou grafikou
+META_FILE = os.path.join(DATA_DIR, 'logo_studio_images.json')
+BUNDLED_META_FILE = os.path.join(BUNDLED_DATA_DIR, 'logo_studio_images.json')
+if META_FILE != BUNDLED_META_FILE and not os.path.exists(META_FILE) and os.path.exists(BUNDLED_META_FILE):
+    shutil.copy2(BUNDLED_META_FILE, META_FILE)
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_key_cup_esports_2026')
+app.config['DB_NAME'] = DB_FILENAME
+app.config['UPLOAD_FOLDER'] = LOGO_DIR
+
+LOGO_PATH = '/static/branding_logo.svg'
+WEB_GRAPHIC_PATH = '/static/web_graphic.svg'
+
 STYLES = {
     'clean': 'clean esports logo, flat design, minimal vector',
     'neon': 'neon glowing esports logo, dark background, futuristic lines',
@@ -46,6 +71,12 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 # <<< AI_BLOCK:DATABASE
+
+# >>> AI_BLOCK:ROUTES_MEDIA
+@app.route('/static/generated_logos/<path:filename>')
+def generated_logo_file(filename):
+    return send_from_directory(LOGO_DIR, filename)
+# <<< AI_BLOCK:ROUTES_MEDIA
 
 # >>> AI_BLOCK:SCHEMA
 def init_db():

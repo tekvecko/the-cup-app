@@ -18,3 +18,7 @@ build/
 
 # Virtual environment
 venv/
+
+# SQLite runtime sidecars
+*.db-wal
+*.db-shm
