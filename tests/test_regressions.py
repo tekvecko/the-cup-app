@@ -35,6 +35,11 @@ class RuntimeRegressionTests(unittest.TestCase):
             spec.loader.exec_module(module)
 
             helper_names = (
+                "get_current_user",
+                "login_required",
+                "log_match_action",
+                "get_local_ip",
+                "format_date_cz",
                 "pixazo_generate",
                 "save_url",
                 "compose_two_phases",
@@ -42,6 +47,7 @@ class RuntimeRegressionTests(unittest.TestCase):
                 "pixazo_error",
             )
             assert all(callable(getattr(module, name, None)) for name in helper_names)
+            assert module.format_date_cz("2026-08-29") == "29.08.2026"
 
             routes = {rule.rule for rule in module.app.url_map.iter_rules()}
             assert "/export/db" in routes
@@ -50,8 +56,10 @@ class RuntimeRegressionTests(unittest.TestCase):
             client = module.app.test_client()
             unauthenticated = client.get("/export/db", follow_redirects=False)
             assert unauthenticated.status_code == 302
+            assert unauthenticated.headers["Location"].endswith("/account")
 
             with client.session_transaction() as flask_session:
+                assert flask_session["next_url"].endswith("/export/db")
                 flask_session["user_id"] = 1
 
             database_export = client.get("/export/db")
