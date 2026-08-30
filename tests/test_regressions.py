@@ -53,6 +53,41 @@ class RuntimeRegressionTests(unittest.TestCase):
             source,
         )
 
+    def test_esports_mobile_design_contract(self):
+        source = APP_SOURCE.read_text(encoding="utf-8")
+        index_match = re.search(r'INDEX_HTML = """(.*?)"""', source, re.DOTALL)
+        seasons_match = re.search(r'SEASONS_HTML = """(.*?)"""', source, re.DOTALL)
+
+        self.assertIsNotNone(index_match)
+        self.assertIsNotNone(seasons_match)
+        index_template = index_match.group(1)
+        seasons_template = seasons_match.group(1)
+
+        for marker in (
+            "/* Esports mobile design */",
+            'class="brand-mark"',
+            'class="esports-dashboard',
+            'class="featured-panel"',
+            'class="dashboard-stats"',
+            'class="next-match-card"',
+            'class="event-grid"',
+        ):
+            self.assertIn(marker, source)
+
+        self.assertIn("{{ current_user.username }}", index_template)
+        self.assertIn("{{ t.banner or web_graphic }}", index_template)
+        self.assertIn("onerror=\"this.onerror=null", index_template)
+
+        for marker in (
+            'class="tournament-catalog',
+            'class="catalog-create"',
+            'class="event-grid event-grid--catalog"',
+            'role="progressbar"',
+            'class="event-delete"',
+            "{% if tournaments %}",
+        ):
+            self.assertIn(marker, seasons_template)
+
     def test_tournament_detail_mobile_layout_contract(self):
         source = APP_SOURCE.read_text(encoding="utf-8")
         match = re.search(
