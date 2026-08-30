@@ -197,6 +197,17 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; opacit
   box-shadow: 0 14px 40px rgba(2, 6, 23, 0.34), 0 0 28px rgba(59, 130, 246, 0.10);
 }
 .brand-pill span { letter-spacing: -0.035em; }
+.brand-mark {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 0.55rem;
+  background: rgba(59, 130, 246, 0.09);
+}
+.brand-mark img { width: 100%; height: 100%; object-fit: contain; padding: 0.16rem; }
 .app-main {
   position: relative;
   padding-inline: clamp(0.9rem, 2.6vw, 1.75rem) !important;
@@ -348,6 +359,688 @@ body.light .bg-slate-900.theme-text-main {
   background-color: #eef3fa !important;
 }
 body.light .toast { color: var(--text); background: rgba(255, 255, 255, 0.98); }
+
+/* Esports mobile design */
+.esports-dashboard,
+.tournament-catalog {
+  width: min(100%, 74rem);
+  margin-inline: auto;
+}
+.dashboard-intro,
+.catalog-header,
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.dashboard-intro {
+  padding: 0.25rem 0.15rem 0;
+}
+.screen-eyebrow,
+.section-kicker,
+.featured-kicker,
+.event-status,
+.event-visibility {
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.screen-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+  color: #60a5fa;
+  font-size: 0.66rem;
+}
+.screen-title {
+  max-width: 18ch;
+  color: var(--text);
+  font-size: clamp(1.85rem, 7vw, 3.4rem);
+  font-weight: 950;
+  font-style: italic;
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.screen-title span {
+  color: #60a5fa;
+}
+.screen-subtitle {
+  max-width: 36rem;
+  margin-top: 0.65rem;
+  color: var(--muted);
+  font-size: clamp(0.72rem, 2vw, 0.9rem);
+  font-weight: 650;
+}
+.profile-chip {
+  display: grid;
+  width: 3.1rem;
+  height: 3.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 1.05rem;
+  color: #fff;
+  background: linear-gradient(145deg, #4f46e5, #2563eb);
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.27);
+  font-size: 1rem;
+  font-weight: 950;
+}
+.featured-panel {
+  position: relative;
+  min-height: clamp(19rem, 52vw, 28rem);
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(129, 140, 248, 0.24);
+  border-radius: clamp(1.6rem, 4vw, 2.35rem);
+  background: #081025;
+  box-shadow: 0 26px 74px rgba(0, 0, 0, 0.34);
+}
+.featured-media,
+.featured-scrim {
+  position: absolute;
+  inset: 0;
+}
+.featured-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.16) contrast(1.06);
+  transform: scale(1.02);
+}
+.featured-scrim {
+  background:
+    linear-gradient(90deg, rgba(3, 7, 18, 0.96) 0%, rgba(3, 7, 18, 0.74) 48%, rgba(3, 7, 18, 0.24) 100%),
+    linear-gradient(0deg, rgba(3, 7, 18, 0.94), transparent 62%);
+}
+.featured-panel::after {
+  position: absolute;
+  z-index: 1;
+  top: -7rem;
+  right: -5rem;
+  width: 19rem;
+  height: 19rem;
+  pointer-events: none;
+  content: "";
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.34), transparent 68%);
+}
+.featured-copy {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: min(100%, 38rem);
+  min-height: inherit;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: clamp(1.35rem, 5vw, 3rem);
+}
+.featured-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(167, 139, 250, 0.32);
+  border-radius: 999px;
+  color: #c4b5fd;
+  background: rgba(76, 29, 149, 0.28);
+  font-size: 0.58rem;
+}
+.featured-title {
+  max-width: 12ch;
+  margin-top: 0.85rem;
+  color: #fff;
+  font-size: clamp(2rem, 8vw, 4.25rem);
+  font-weight: 950;
+  font-style: italic;
+  line-height: 0.92;
+  letter-spacing: -0.065em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.featured-description {
+  max-width: 32rem;
+  margin-top: 0.85rem;
+  color: #b8c3d7;
+  font-size: clamp(0.72rem, 2vw, 0.9rem);
+  font-weight: 650;
+}
+.featured-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.2rem;
+}
+.featured-action,
+.catalog-create,
+.event-manage {
+  display: inline-flex;
+  min-height: 2.85rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 0.95rem;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+.featured-action--primary,
+.catalog-create {
+  padding-inline: 1rem;
+  color: #fff;
+  background: linear-gradient(145deg, #4f46e5, #2563eb);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.32);
+}
+.featured-action--secondary {
+  padding-inline: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.74);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.metric-card {
+  position: relative;
+  display: flex;
+  min-height: 7rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  overflow: hidden;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1.35rem;
+  color: var(--text);
+  background: linear-gradient(145deg, rgba(18, 30, 52, 0.98), rgba(8, 14, 29, 0.98));
+  box-shadow: var(--shadow-card);
+}
+.metric-card::after {
+  position: absolute;
+  top: -2.6rem;
+  right: -2.4rem;
+  width: 8rem;
+  height: 8rem;
+  pointer-events: none;
+  content: "";
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.2), transparent 70%);
+}
+.metric-copy {
+  position: relative;
+  z-index: 1;
+}
+.metric-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.105em;
+  text-transform: uppercase;
+}
+.metric-value {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: clamp(1.8rem, 6vw, 2.6rem);
+  font-weight: 950;
+  font-style: italic;
+  line-height: 1;
+}
+.metric-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 0.9rem;
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.1);
+}
+.section-heading {
+  margin-bottom: 0.85rem;
+  padding-inline: 0.1rem;
+}
+.section-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #60a5fa;
+  font-size: 0.58rem;
+}
+.section-title {
+  margin-top: 0.2rem;
+  color: var(--text);
+  font-size: clamp(1.15rem, 4vw, 1.55rem);
+  font-weight: 950;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+.section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 0.62rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+.event-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 1.45rem;
+  color: var(--text);
+  background: linear-gradient(145deg, rgba(18, 30, 52, 0.98), rgba(8, 14, 29, 0.98));
+  box-shadow: var(--shadow-card);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+.event-card-media {
+  position: relative;
+  height: 9.5rem;
+  overflow: hidden;
+  background: #060b16;
+}
+.event-card-media::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.04), rgba(2, 6, 23, 0.56));
+}
+.event-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.08) contrast(1.04);
+  transition: transform 300ms ease, filter 300ms ease;
+}
+.event-badges {
+  position: absolute;
+  z-index: 2;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.event-status,
+.event-visibility {
+  display: inline-flex;
+  min-height: 1.55rem;
+  align-items: center;
+  gap: 0.3rem;
+  padding-inline: 0.55rem;
+  border-radius: 999px;
+  font-size: 0.5rem;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.event-status {
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  color: #bfdbfe;
+  background: rgba(30, 64, 175, 0.62);
+}
+.event-status--live {
+  border-color: rgba(251, 146, 60, 0.4);
+  color: #fed7aa;
+  background: rgba(154, 52, 18, 0.66);
+}
+.event-status--open {
+  border-color: rgba(74, 222, 128, 0.38);
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.68);
+}
+.event-visibility {
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  color: #e2e8f0;
+  background: rgba(2, 6, 23, 0.65);
+}
+.event-card-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 1rem;
+}
+.event-card-title {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 950;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.8rem;
+  margin-top: 0.65rem;
+  color: var(--muted);
+  font-size: 0.63rem;
+  font-weight: 750;
+}
+.event-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+.event-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+.event-card-hint {
+  color: #60a5fa;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.event-card-arrow {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.7rem;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+}
+.notification-card,
+.next-match-card,
+.catalog-summary,
+.catalog-empty {
+  border: 1px solid var(--line);
+  border-radius: 1.35rem;
+  background: linear-gradient(145deg, rgba(18, 30, 52, 0.98), rgba(8, 14, 29, 0.98));
+  box-shadow: var(--shadow-card);
+}
+.notification-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 1rem;
+}
+.notification-icon {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(250, 204, 21, 0.25);
+  border-radius: 0.9rem;
+  color: #facc15;
+  background: rgba(234, 179, 8, 0.1);
+}
+.notification-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.4rem;
+}
+.notification-action {
+  display: inline-flex;
+  min-height: 2.3rem;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.72rem;
+  border-radius: 0.75rem;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.notification-action--accept { color: #052e16; background: #4ade80; }
+.notification-action--decline { color: #fca5a5; background: rgba(127, 29, 29, 0.24); }
+.next-match-card {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1rem, 3vw, 1.4rem);
+  border-color: rgba(251, 146, 60, 0.22);
+}
+.next-match-card::after {
+  position: absolute;
+  top: -6rem;
+  right: -4rem;
+  width: 15rem;
+  height: 15rem;
+  pointer-events: none;
+  content: "";
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.16), transparent 70%);
+}
+.matchup {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.match-team {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+}
+.match-team--away {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+.team-mark {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 0.9rem;
+  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.24);
+}
+.team-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.25rem;
+}
+.match-team-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.match-versus {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  place-items: center;
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 999px;
+  color: #fb923c;
+  background: rgba(124, 45, 18, 0.2);
+  font-size: 0.58rem;
+  font-weight: 950;
+}
+.match-details {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+.catalog-header {
+  align-items: flex-end;
+}
+.catalog-create {
+  flex: 0 0 auto;
+}
+.catalog-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+}
+.catalog-summary-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.85rem;
+  color: #c4b5fd;
+  background: rgba(124, 58, 237, 0.14);
+}
+.capacity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 850;
+}
+.capacity-track {
+  height: 0.3rem;
+  margin-top: 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+}
+.capacity-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6366f1, #3b82f6);
+}
+.event-card-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  margin-top: 0.95rem;
+}
+.event-manage {
+  color: #fff;
+  background: linear-gradient(145deg, #4f46e5, #2563eb);
+}
+.event-delete {
+  display: grid;
+  width: 2.85rem;
+  min-height: 2.85rem;
+  place-items: center;
+  border: 1px solid rgba(248, 113, 113, 0.18);
+  border-radius: 0.95rem;
+  color: #f87171;
+  background: rgba(127, 29, 29, 0.14);
+}
+.catalog-empty {
+  display: grid;
+  min-height: 18rem;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+}
+body.light .metric-card,
+body.light .event-card,
+body.light .notification-card,
+body.light .next-match-card,
+body.light .catalog-summary,
+body.light .catalog-empty {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 253, 0.99));
+}
+body.light .featured-action--secondary {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.68);
+}
+@media (hover: hover) and (pointer: fine) {
+  .featured-action:hover,
+  .catalog-create:hover,
+  .event-manage:hover { transform: translateY(-2px); }
+  .profile-chip:hover,
+  .metric-card:hover,
+  .event-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(96, 165, 250, 0.34);
+  }
+  .event-card:hover .event-card-media img {
+    transform: scale(1.045);
+    filter: saturate(1.15) contrast(1.06);
+  }
+}
+@media (min-width: 680px) {
+  .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-stats { gap: 1rem; }
+  .metric-card { padding: 1.25rem; }
+}
+@media (min-width: 1040px) {
+  .event-grid--catalog { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .dashboard-intro { align-items: flex-start; }
+  .screen-title { max-width: 13ch; }
+  .featured-panel { min-height: 22rem; }
+  .featured-scrim {
+    background:
+      linear-gradient(0deg, rgba(3, 7, 18, 0.98) 0%, rgba(3, 7, 18, 0.7) 62%, rgba(3, 7, 18, 0.28) 100%),
+      linear-gradient(90deg, rgba(3, 7, 18, 0.62), transparent);
+  }
+  .featured-copy { justify-content: flex-end; }
+  .featured-title { max-width: 10ch; }
+  .featured-actions { width: 100%; }
+  .featured-action { flex: 1; }
+  .notification-card { align-items: flex-start; flex-wrap: wrap; }
+  .notification-actions { width: 100%; }
+  .notification-action { flex: 1; }
+  .catalog-header { align-items: flex-start; }
+  .catalog-create {
+    width: 2.85rem;
+    padding-inline: 0;
+  }
+  .catalog-create span { display: none; }
+}
 
 /* Tournament detail */
 .tournament-detail-shell {
@@ -609,7 +1302,7 @@ body.light .standings-points {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}</style></head><body class="app-body min-h-screen {% if not hide_nav %}pb-28 has-app-nav{% endif %} flex flex-col"><div id="offline-banner" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest text-center py-1.5 z-[9999] shadow-lg">Jste v offline režimu - prohlížíte uložená data</div><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js');});}window.addEventListener('online',()=>document.getElementById('offline-banner').classList.add('hidden'));window.addEventListener('offline',()=>document.getElementById('offline-banner').classList.remove('hidden'));if(!navigator.onLine)document.getElementById('offline-banner').classList.remove('hidden');const userTheme='{{current_user.theme if current_user else "system"}}';const themeQuery=window.matchMedia('(prefers-color-scheme: dark)');function applyTheme(){const isLight=userTheme==='light'||(userTheme==='system'&&!themeQuery.matches);document.body.classList.toggle('light',isLight);const themeMeta=document.getElementById('meta-theme-color');if(themeMeta)themeMeta.content=isLight?'#f4f7fb':'#020617';}applyTheme();if(userTheme==='system'){if(themeQuery.addEventListener)themeQuery.addEventListener('change',applyTheme);else themeQuery.addListener(applyTheme);}function vibrate(){if(navigator.vibrate)navigator.vibrate(50);}let lastNotifCount=0;</script><div id="custom-modal" class="fixed inset-0 z-[2000] flex items-center justify-center hidden opacity-0 transition-opacity duration-300"><div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div><div class="navy-card relative w-11/12 max-w-sm p-6 transform scale-95 transition-transform duration-300 shadow-2xl" id="custom-modal-content"><div class="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-4 border border-blue-500/20"><i data-lucide="help-circle" class="w-8 h-8"></i></div><h3 class="text-xl font-black italic uppercase text-center mb-2 theme-text-main">Potvrzení</h3><p id="modal-message" class="text-xs text-slate-400 text-center mb-8"></p><div class="flex gap-3"><button onclick="closeModal()" type="button" class="flex-1 bg-slate-800 hover:bg-slate-700 py-4 rounded-xl font-black uppercase text-[10px] theme-text-main transition-colors">Zrušit</button><button onclick="confirmModalAction()" type="button" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black uppercase text-[10px] shadow-lg transition-colors">Potvrdit</button></div></div></div><div id="logo-modal" class="fixed inset-0 z-[4000] bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity" onclick="closeLogoModal()"><div class="relative w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center" onclick="event.stopPropagation()"><button type="button" onclick="closeLogoModal()" class="absolute -top-12 right-0 sm:-right-8 text-slate-400 hover:text-white"><i data-lucide="x" class="w-8 h-8"></i></button><div id="logo-modal-content" class="w-64 h-64 sm:w-80 sm:h-80 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/10 overflow-hidden" style="background-color: #0f172a;"></div></div></div><div id="toast-container" class="fixed top-24 right-4 left-4 md:left-auto md:w-80 z-[1000] space-y-2 pointer-events-none">{% with messages=get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="toast flex items-center justify-between p-4 rounded-xl shadow-2xl"><div class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4 text-blue-500 shrink-0"></i><span class="text-xs font-bold">{{ message }}</span></div><button onclick="this.parentElement.remove()" class="text-slate-500 font-bold p-2 shrink-0">&times;</button></div>{% endfor %}{% endif %}{% endwith %}</div>{% if not hide_nav %}<div class="app-header fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none mt-4"><nav id="main-nav-tab" class="brand-pill glass px-10 py-2.5 rounded-[2rem] border border-white/10 shadow-2xl pointer-events-auto flex flex-col items-center" aria-label="THE CUP"><span class="uppercase tracking-tighter font-black italic text-blue-500 text-xl drop-shadow-md">THE CUP</span></nav></div>{% endif %}<main class="app-main w-full max-w-[1400px] mx-auto px-3 {% if not hide_nav %}app-main-with-nav pt-24{% endif %} mt-2 flex-1 flex flex-col" id="main-content">CONTENT_PLACEHOLDER</main>{% if not hide_nav %}<div class="app-bottom-nav fixed bottom-0 left-0 right-0 bottom-nav z-50 p-2"><div class="bottom-nav-inner flex justify-between items-center max-w-lg mx-auto"><a href="/" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='home' }}"><i data-lucide="home"></i><span class="text-[8px] font-bold uppercase">Domů</span></a>{% if current_user %}<a href="/teams" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='teams' }}"><i data-lucide="users"></i><span class="text-[8px] font-bold uppercase">Týmy</span></a><a href="/create" onclick="vibrate()" class="nav-create bg-blue-600 w-10 h-10 flex items-center justify-center rounded-2xl shadow-xl -mt-6 border-4 border-slate-950 active:scale-90" aria-label="Vytvořit turnaj"><i data-lucide="plus" class="text-white"></i></a><a href="/seasons" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='seasons' }}"><i data-lucide="trophy"></i><span class="text-[8px] font-bold uppercase">Turnaje</span></a>{% endif %}<a href="/hof" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='hof' }}"><i data-lucide="star"></i><span class="text-[8px] font-bold uppercase">Sláva</span></a><a href="/account" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='account' }}"><i data-lucide="user"></i><span class="text-[8px] font-bold uppercase">Účet</span></a></div></div>{% endif %}<script>lucide.createIcons();let pendingForm=null;function openLogoModal(content,bgColor){const modal=document.getElementById('logo-modal');const container=document.getElementById('logo-modal-content');container.style.backgroundColor=bgColor;if(content.includes('static/')){container.innerHTML='<img src="'+content+'" class="w-full h-full object-contain p-6">';}else{container.innerHTML='<span class="drop-shadow-xl text-7xl sm:text-9xl">'+content+'</span>';}modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');}function closeLogoModal(){const modal=document.getElementById('logo-modal');modal.classList.add('opacity-0');setTimeout(()=>modal.classList.add('hidden'),300);}function openModal(message,form){document.getElementById('modal-message').innerText=message;pendingForm=form;const modal=document.getElementById('custom-modal');modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');vibrate();}function closeModal(){const modal=document.getElementById('custom-modal');modal.classList.add('opacity-0');setTimeout(()=>{modal.classList.add('hidden');pendingForm=null;},300);}function confirmModalAction(){if(pendingForm)pendingForm.submit();closeModal();vibrate();}document.addEventListener('DOMContentLoaded',()=>{const toasts=document.querySelectorAll('.toast');toasts.forEach(toast=>{setTimeout(()=>{toast.classList.add('hide');setTimeout(()=>toast.remove(),500);},5000);});});function exportImage(elementId){const btn=document.getElementById('export-btn');const origHtml=btn.innerHTML;btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';lucide.createIcons();setTimeout(()=>{html2canvas(document.getElementById(elementId),{backgroundColor:userTheme==='light'?'#f8fafc':'#020617',scale:2}).then(canvas=>{let a=document.createElement('a');a.href=canvas.toDataURL("image/jpeg");a.download='the_cup_export.jpg';a.click();btn.innerHTML=origHtml;lucide.createIcons();vibrate();});},200);}setInterval(()=>{document.querySelectorAll('.live-timer').forEach(el=>{let start=parseInt(el.dataset.start);if(start>0){let diff=Math.floor(Date.now()/1000)-start;if(diff<0)diff=0;let m=Math.floor(diff/60).toString().padStart(2,'0');let s=(diff%60).toString().padStart(2,'0');el.innerText=`${m}:${s}`;}});},1000);let touchstartX=0;let touchendX=0;const swipeArea=document.getElementById('swipe-area');if(swipeArea){swipeArea.addEventListener('touchstart',e=>{touchstartX=e.changedTouches[0].screenX;},{passive:true});swipeArea.addEventListener('touchend',e=>{touchendX=e.changedTouches[0].screenX;handleSwipe();},{passive:true});}function handleSwipe(){if(!document.getElementById('tab-playoffs'))return;let diff=touchstartX-touchendX;if(diff>60){if(!document.getElementById('content-playoffs').classList.contains('hidden')===false){switchTab('playoffs');vibrate();}}else if(diff<-60){if(!document.getElementById('content-groups').classList.contains('hidden')===false){switchTab('groups');vibrate();}}}</script></body></html>"""
+}</style></head><body class="app-body min-h-screen {% if not hide_nav %}pb-28 has-app-nav{% endif %} flex flex-col"><div id="offline-banner" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest text-center py-1.5 z-[9999] shadow-lg">Jste v offline režimu - prohlížíte uložená data</div><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js');});}window.addEventListener('online',()=>document.getElementById('offline-banner').classList.add('hidden'));window.addEventListener('offline',()=>document.getElementById('offline-banner').classList.remove('hidden'));if(!navigator.onLine)document.getElementById('offline-banner').classList.remove('hidden');const userTheme='{{current_user.theme if current_user else "system"}}';const themeQuery=window.matchMedia('(prefers-color-scheme: dark)');function applyTheme(){const isLight=userTheme==='light'||(userTheme==='system'&&!themeQuery.matches);document.body.classList.toggle('light',isLight);const themeMeta=document.getElementById('meta-theme-color');if(themeMeta)themeMeta.content=isLight?'#f4f7fb':'#020617';}applyTheme();if(userTheme==='system'){if(themeQuery.addEventListener)themeQuery.addEventListener('change',applyTheme);else themeQuery.addListener(applyTheme);}function vibrate(){if(navigator.vibrate)navigator.vibrate(50);}let lastNotifCount=0;</script><div id="custom-modal" class="fixed inset-0 z-[2000] flex items-center justify-center hidden opacity-0 transition-opacity duration-300"><div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal()"></div><div class="navy-card relative w-11/12 max-w-sm p-6 transform scale-95 transition-transform duration-300 shadow-2xl" id="custom-modal-content"><div class="w-16 h-16 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-4 border border-blue-500/20"><i data-lucide="help-circle" class="w-8 h-8"></i></div><h3 class="text-xl font-black italic uppercase text-center mb-2 theme-text-main">Potvrzení</h3><p id="modal-message" class="text-xs text-slate-400 text-center mb-8"></p><div class="flex gap-3"><button onclick="closeModal()" type="button" class="flex-1 bg-slate-800 hover:bg-slate-700 py-4 rounded-xl font-black uppercase text-[10px] theme-text-main transition-colors">Zrušit</button><button onclick="confirmModalAction()" type="button" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black uppercase text-[10px] shadow-lg transition-colors">Potvrdit</button></div></div></div><div id="logo-modal" class="fixed inset-0 z-[4000] bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-4 opacity-0 transition-opacity" onclick="closeLogoModal()"><div class="relative w-full max-w-sm sm:max-w-md flex flex-col items-center justify-center" onclick="event.stopPropagation()"><button type="button" onclick="closeLogoModal()" class="absolute -top-12 right-0 sm:-right-8 text-slate-400 hover:text-white"><i data-lucide="x" class="w-8 h-8"></i></button><div id="logo-modal-content" class="w-64 h-64 sm:w-80 sm:h-80 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/10 overflow-hidden" style="background-color: #0f172a;"></div></div></div><div id="toast-container" class="fixed top-24 right-4 left-4 md:left-auto md:w-80 z-[1000] space-y-2 pointer-events-none">{% with messages=get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="toast flex items-center justify-between p-4 rounded-xl shadow-2xl"><div class="flex items-center gap-3"><i data-lucide="bell" class="w-4 h-4 text-blue-500 shrink-0"></i><span class="text-xs font-bold">{{ message }}</span></div><button onclick="this.parentElement.remove()" class="text-slate-500 font-bold p-2 shrink-0">&times;</button></div>{% endfor %}{% endif %}{% endwith %}</div>{% if not hide_nav %}<div class="app-header fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none mt-4"><a href="/" id="main-nav-tab" class="brand-pill glass px-10 py-2.5 rounded-[2rem] border border-white/10 shadow-2xl pointer-events-auto flex items-center justify-center gap-2.5" aria-label="THE CUP – domů"><span class="brand-mark"><img src="{{ logo }}" alt="" aria-hidden="true"></span><span class="uppercase tracking-tighter font-black italic text-blue-500 text-xl drop-shadow-md">THE CUP</span></a></div>{% endif %}<main class="app-main w-full max-w-[1400px] mx-auto px-3 {% if not hide_nav %}app-main-with-nav pt-24{% endif %} mt-2 flex-1 flex flex-col" id="main-content">CONTENT_PLACEHOLDER</main>{% if not hide_nav %}<div class="app-bottom-nav fixed bottom-0 left-0 right-0 bottom-nav z-50 p-2"><div class="bottom-nav-inner flex justify-between items-center max-w-lg mx-auto"><a href="/" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='home' }}"><i data-lucide="home"></i><span class="text-[8px] font-bold uppercase">Domů</span></a>{% if current_user %}<a href="/teams" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='teams' }}"><i data-lucide="users"></i><span class="text-[8px] font-bold uppercase">Týmy</span></a><a href="/create" onclick="vibrate()" class="nav-create bg-blue-600 w-10 h-10 flex items-center justify-center rounded-2xl shadow-xl -mt-6 border-4 border-slate-950 active:scale-90" aria-label="Vytvořit turnaj"><i data-lucide="plus" class="text-white"></i></a><a href="/seasons" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='seasons' }}"><i data-lucide="trophy"></i><span class="text-[8px] font-bold uppercase">Turnaje</span></a>{% endif %}<a href="/hof" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='hof' }}"><i data-lucide="star"></i><span class="text-[8px] font-bold uppercase">Sláva</span></a><a href="/account" onclick="vibrate()" class="nav-item flex flex-col items-center gap-1 opacity-60 {{ 'text-blue-500 opacity-100' if active_page=='account' }}"><i data-lucide="user"></i><span class="text-[8px] font-bold uppercase">Účet</span></a></div></div>{% endif %}<script>lucide.createIcons();let pendingForm=null;function openLogoModal(content,bgColor){const modal=document.getElementById('logo-modal');const container=document.getElementById('logo-modal-content');container.style.backgroundColor=bgColor;if(content.includes('static/')){container.innerHTML='<img src="'+content+'" class="w-full h-full object-contain p-6">';}else{container.innerHTML='<span class="drop-shadow-xl text-7xl sm:text-9xl">'+content+'</span>';}modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');}function closeLogoModal(){const modal=document.getElementById('logo-modal');modal.classList.add('opacity-0');setTimeout(()=>modal.classList.add('hidden'),300);}function openModal(message,form){document.getElementById('modal-message').innerText=message;pendingForm=form;const modal=document.getElementById('custom-modal');modal.classList.remove('hidden');void modal.offsetWidth;modal.classList.remove('opacity-0');vibrate();}function closeModal(){const modal=document.getElementById('custom-modal');modal.classList.add('opacity-0');setTimeout(()=>{modal.classList.add('hidden');pendingForm=null;},300);}function confirmModalAction(){if(pendingForm)pendingForm.submit();closeModal();vibrate();}document.addEventListener('DOMContentLoaded',()=>{const toasts=document.querySelectorAll('.toast');toasts.forEach(toast=>{setTimeout(()=>{toast.classList.add('hide');setTimeout(()=>toast.remove(),500);},5000);});});function exportImage(elementId){const btn=document.getElementById('export-btn');const origHtml=btn.innerHTML;btn.innerHTML='<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';lucide.createIcons();setTimeout(()=>{html2canvas(document.getElementById(elementId),{backgroundColor:userTheme==='light'?'#f8fafc':'#020617',scale:2}).then(canvas=>{let a=document.createElement('a');a.href=canvas.toDataURL("image/jpeg");a.download='the_cup_export.jpg';a.click();btn.innerHTML=origHtml;lucide.createIcons();vibrate();});},200);}setInterval(()=>{document.querySelectorAll('.live-timer').forEach(el=>{let start=parseInt(el.dataset.start);if(start>0){let diff=Math.floor(Date.now()/1000)-start;if(diff<0)diff=0;let m=Math.floor(diff/60).toString().padStart(2,'0');let s=(diff%60).toString().padStart(2,'0');el.innerText=`${m}:${s}`;}});},1000);let touchstartX=0;let touchendX=0;const swipeArea=document.getElementById('swipe-area');if(swipeArea){swipeArea.addEventListener('touchstart',e=>{touchstartX=e.changedTouches[0].screenX;},{passive:true});swipeArea.addEventListener('touchend',e=>{touchendX=e.changedTouches[0].screenX;handleSwipe();},{passive:true});}function handleSwipe(){if(!document.getElementById('tab-playoffs'))return;let diff=touchstartX-touchendX;if(diff>60){if(!document.getElementById('content-playoffs').classList.contains('hidden')===false){switchTab('playoffs');vibrate();}}else if(diff<-60){if(!document.getElementById('content-groups').classList.contains('hidden')===false){switchTab('groups');vibrate();}}}</script></body></html>"""
 # <<< AI_BLOCK:TEMPLATES_BASE
 
 # >>> AI_BLOCK:TEMPLATES_MACROS
@@ -631,62 +1324,162 @@ WELCOME_HTML = """<div class="welcome-card relative flex-1 flex flex-col items-c
     </div>
 </div>"""
 
-INDEX_HTML = """<div class="space-y-6 sm:space-y-10">
-    <div class="w-full text-center mb-6 sm:mb-8 flex flex-col items-center gap-4">
-        <div class="hero-card inline-block p-0 navy-card shadow-2xl relative w-full sm:w-auto min-w-[300px] overflow-hidden rounded-[1.5rem] border border-white/5">
-            <div class="hero-media w-full border-b border-white/10 h-32 sm:h-40 relative bg-slate-950 flex items-center justify-center">
-                <img src="{{ web_graphic }}" class="w-full h-full object-cover opacity-80" alt="Grafika">
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
+INDEX_HTML = """<div class="esports-dashboard space-y-6 sm:space-y-8">
+    <header class="dashboard-intro">
+        <div>
+            <p class="screen-eyebrow"><i data-lucide="gamepad-2" class="w-3.5 h-3.5"></i> Player hub</p>
+            <h1 class="screen-title">Vítej zpět, <span>{{ current_user.username }}</span></h1>
+            <p class="screen-subtitle">Turnaje, týmy a další zápasy na jednom místě.</p>
+        </div>
+        <a href="/account" class="profile-chip" aria-label="Otevřít účet {{ current_user.username }}">{{ current_user.username[0]|upper }}</a>
+    </header>
+
+    <section class="featured-panel" aria-labelledby="featured-title">
+        <div class="featured-media"><img src="{{ web_graphic }}" alt="" aria-hidden="true"></div>
+        <div class="featured-scrim"></div>
+        <div class="featured-copy">
+            <span class="featured-kicker"><i data-lucide="sparkles" class="w-3 h-3"></i> Tournament creator</span>
+            <h2 id="featured-title" class="featured-title">Postav svůj turnaj</h2>
+            <p class="featured-description">Vytvoř soutěž, pozvi týmy a spravuj výsledky v jednom rychlém mobilním rozhraní.</p>
+            <div class="featured-actions">
+                <a href="/create" class="featured-action featured-action--primary"><i data-lucide="plus" class="w-4 h-4"></i> Nový turnaj</a>
+                <a href="/seasons" class="featured-action featured-action--secondary">Moje turnaje <i data-lucide="arrow-up-right" class="w-4 h-4"></i></a>
             </div>
-            <div class="hero-copy p-4 sm:p-5 relative z-10 -mt-6">
-                <h2 class="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-md mb-2">Moje Nástěnka</h2>
-                <p class="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-2 font-bold"><i data-lucide="trophy" class="w-3.5 h-3.5 text-blue-500"></i> THE CUP Sezóna 2026</p>
-            </div>
         </div>
-    </div>
-    {% if invitations %}<section class="mb-4">
-        <div class="flex items-center gap-2 mb-3 px-1"><i data-lucide="mail-open" class="w-4 h-4 text-yellow-500 shrink-0"></i><h2 class="text-lg sm:text-xl font-black uppercase italic text-yellow-500 tracking-widest">Pozvánky do turnajů</h2></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            {% for inv in invitations %}<div class="navy-card p-4 sm:p-5 flex justify-between items-center border border-yellow-500/20 bg-yellow-500/5">
-                <div class="min-w-0 pr-4"><h3 class="font-bold text-base sm:text-lg leading-tight truncate theme-text-main">{{ inv.t_name }}</h3><p class="text-[9px] text-slate-400 mt-1">Byl jsi přímo pozván organizátorem</p></div>
-                <div class="flex gap-2 shrink-0"><a href="/join/{{ inv.join_token }}" class="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider">Vstoupit</a><form action="/invitation/{{ inv.id }}/decline" method="POST"><button class="bg-slate-800 hover:bg-slate-700 text-red-400 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border border-white/5">Skrýt</button></form></div>
-            </div>{% endfor %}
-        </div>
-    </section>{% endif %}
-    {% if next_match %}<div class="navy-card p-5 border border-orange-500/30 bg-gradient-to-br from-slate-900 to-slate-950 shadow-2xl relative overflow-hidden mb-6 sm:mb-8">
-        <h3 class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="zap" class="w-3 h-3"></i> Tvůj další zápas</h3>
-        <div class="flex justify-between items-center">
-            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ next_match.t1_color }}" onclick="openLogoModal('{{next_match.t1_logo}}', '{{next_match.t1_color}}')"><span class="text-xl drop-shadow-md">{% if next_match.t1_logo and 'static' in next_match.t1_logo %}<img src="{{next_match.t1_logo}}" class="w-full h-full object-contain p-1">{% else %}{{next_match.t1_logo}}{% endif %}</span></div><span class="font-black uppercase text-xs theme-text-main">{{ next_match.t1_name }}</span></div>
-            <div class="text-xs font-black text-slate-500 mx-2">VS</div>
-            <div class="flex items-center gap-3 text-right"><span class="font-black uppercase text-xs theme-text-main">{{ next_match.t2_name }}</span><div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/10 cursor-pointer hover:scale-110 transition-transform" style="background-color: {{ next_match.t2_color }}" onclick="openLogoModal('{{next_match.t2_logo}}', '{{next_match.t2_color}}')"><span class="text-xl drop-shadow-md">{% if next_match.t2_logo and 'static' in next_match.t2_logo %}<img src="{{next_match.t2_logo}}" class="w-full h-full object-contain p-1">{% else %}{{next_match.t2_logo}}{% endif %}</span></div></div>
-        </div>
-        <div class="mt-4 pt-3 border-t border-white/5 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            <span><a href="/tournament/{{ next_match.t_id }}" class="text-blue-500 hover:underline">{{ next_match.tr_name }}</a></span>
-            <span class="flex items-center gap-2">{% if next_match.match_time %}<i data-lucide="clock" class="w-3 h-3"></i> {{ m_time }}{% endif %} {% if next_match.pitch %}<i data-lucide="flag" class="w-3 h-3 ml-2"></i> {{ next_match.pitch }}{% endif %}</span>
-        </div>
-    </div>{% endif %}
-    <section class="stats-grid grid grid-cols-2 gap-3 sm:gap-4">
-        <div class="stat-card navy-card p-4 sm:p-5 border-blue-500/20 bg-gradient-to-br from-slate-900 to-slate-950 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 truncate">Moje turnaje</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_tournaments }}</p></div><i data-lucide="trophy" class="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 opacity-50"></i></div>
-        <div class="stat-card navy-card p-4 sm:p-5 bg-slate-900/50 flex justify-between items-center"><div><p class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 truncate">Můj registr týmů</p><p class="text-2xl sm:text-3xl font-black italic leading-none">{{ stats.total_teams }}</p></div><i data-lucide="users" class="w-6 h-6 sm:w-8 sm:h-8 text-slate-500 opacity-50"></i></div>
     </section>
-    {% if participating_tourneys %}<section>
-        <div class="flex items-center gap-2 mb-3 sm:mb-4 px-1"><i data-lucide="play-circle" class="w-4 h-4 text-blue-500 shrink-0"></i><h2 class="text-lg sm:text-xl font-black uppercase italic text-blue-500 tracking-widest truncate">Účastním se</h2></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">{% for t in participating_tourneys %}
-            <a href="/view/{{ t.id }}" class="navy-card p-4 sm:p-5 flex justify-between items-center border border-white/5 hover:border-blue-500/30 transition-all bg-blue-900/10"><div class="min-w-0 pr-4"><span class="text-[8px] sm:text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2 inline-block">{{ t.status }}</span><h3 class="font-bold text-base sm:text-lg leading-tight truncate theme-text-main">{{ t.name }}</h3><p class="text-[9px] sm:text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 truncate"><i data-lucide="user" class="w-3 h-3 shrink-0"></i> Pořádá: {{ t.username }}</p><p class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3 shrink-0"></i> Týmy: {{ t.registered_teams }}/{{ t.max_teams }}</p></div><i data-lucide="eye" class="w-5 h-5 text-blue-500 shrink-0"></i></a>
-        {% endfor %}</div>
-    </section>{% endif %}
-    {% if active_tourneys %}<section>
-        <div class="flex items-center gap-2 mb-3 sm:mb-4 px-1"><i data-lucide="zap" class="w-4 h-4 text-orange-500 shrink-0"></i><h2 class="text-lg sm:text-xl font-black uppercase italic text-orange-500 tracking-widest truncate">Moje Live akce / Drafty</h2></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">{% for t in active_tourneys %}
-            <a href="/tournament/{{ t.id }}" class="navy-card p-4 sm:p-5 flex justify-between items-center border border-orange-500/10 hover:border-orange-500/30 transition-all"><div class="min-w-0 pr-4"><span class="text-[8px] sm:text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-2 inline-block">{{ t.status }}</span><h3 class="font-bold text-base sm:text-lg leading-tight truncate theme-text-main">{{ t.name }}</h3><p class="text-[9px] sm:text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 truncate"><i data-lucide="calendar-days" class="w-3 h-3 shrink-0"></i> {{ format_date_cz(t.start_date) }}</p><p class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3 shrink-0"></i> Týmy: {{ t.registered_teams }}/{{ t.max_teams }}</p></div><i data-lucide="chevron-right" class="w-5 h-5 text-orange-500 shrink-0"></i></a>
-        {% endfor %}</div>
-    </section>{% endif %}
-    {% if joinable_public_tourneys %}<section>
-        <div class="flex items-center gap-2 mb-3 sm:mb-4 px-1"><i data-lucide="search" class="w-4 h-4 text-green-500 shrink-0"></i><h2 class="text-lg sm:text-xl font-black uppercase italic text-green-500 tracking-widest truncate">Volné veřejné turnaje</h2></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">{% for t in joinable_public_tourneys %}
-            <a href="/join/{{ t.join_token }}" class="navy-card p-4 sm:p-5 flex justify-between items-center border-green-500/20 hover:border-green-500/50 bg-green-500/5 transition-all"><div class="min-w-0 pr-4"><h3 class="font-bold text-base sm:text-lg leading-tight truncate theme-text-main">{{ t.name }}</h3><p class="text-[9px] sm:text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 truncate"><i data-lucide="user" class="w-3 h-3 text-green-500 shrink-0"></i> Pořádá: {{ t.username }}</p><p class="text-[9px] sm:text-[10px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate"><i data-lucide="calendar-days" class="w-3 h-3 text-green-500 shrink-0"></i> Zahájení: {{ format_date_cz(t.start_date) }}</p><p class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3 text-green-500 shrink-0"></i> Volno: {{ t.registered_teams }}/{{ t.max_teams }}</p></div><i data-lucide="log-in" class="w-5 h-5 sm:w-6 sm:h-6 text-green-500 opacity-80 shrink-0"></i></a>
-        {% endfor %}</div>
-    </section>{% endif %}
+
+    <section class="dashboard-stats" aria-label="Souhrn účtu">
+        <a href="/seasons" class="stat-card metric-card">
+            <span class="metric-copy"><span class="metric-label">Moje turnaje</span><strong class="metric-value">{{ stats.total_tournaments }}</strong></span>
+            <span class="metric-icon"><i data-lucide="trophy" class="w-5 h-5"></i></span>
+        </a>
+        <a href="/teams" class="stat-card metric-card">
+            <span class="metric-copy"><span class="metric-label">Registrované týmy</span><strong class="metric-value">{{ stats.total_teams }}</strong></span>
+            <span class="metric-icon"><i data-lucide="users-round" class="w-5 h-5"></i></span>
+        </a>
+    </section>
+
+    {% if invitations %}
+    <section aria-labelledby="invitations-title">
+        <div class="section-heading">
+            <div><p class="section-kicker"><i data-lucide="mail-open" class="w-3.5 h-3.5"></i> Čeká na tebe</p><h2 id="invitations-title" class="section-title">Pozvánky</h2></div>
+        </div>
+        <div class="event-grid">
+            {% for inv in invitations %}
+            <article class="notification-card">
+                <span class="notification-icon"><i data-lucide="ticket-check" class="w-5 h-5"></i></span>
+                <div class="min-w-0 flex-1"><h3 class="event-card-title">{{ inv.t_name }}</h3><p class="mt-1 text-[10px] font-bold text-slate-400">Přímá pozvánka od organizátora</p></div>
+                <div class="notification-actions">
+                    <a href="/join/{{ inv.join_token }}" class="notification-action notification-action--accept">Vstoupit</a>
+                    <form action="/invitation/{{ inv.id }}/decline" method="POST"><button type="submit" class="notification-action notification-action--decline">Skrýt</button></form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if next_match %}
+    <section aria-labelledby="next-match-title">
+        <div class="section-heading">
+            <div><p class="section-kicker" style="color:#fb923c"><i data-lucide="radio" class="w-3.5 h-3.5"></i> Match center</p><h2 id="next-match-title" class="section-title">Další zápas</h2></div>
+            <a href="/tournament/{{ next_match.t_id }}" class="section-link">Detail <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></a>
+        </div>
+        <article class="next-match-card">
+            <div class="matchup">
+                <div class="match-team">
+                    <button type="button" class="team-mark" style="background-color: {{ next_match.t1_color }}" onclick="openLogoModal('{{ next_match.t1_logo }}', '{{ next_match.t1_color }}')" aria-label="Zobrazit logo týmu {{ next_match.t1_name }}">{% if next_match.t1_logo and 'static' in next_match.t1_logo %}<img src="{{ next_match.t1_logo }}" alt="">{% else %}<span>{{ next_match.t1_logo }}</span>{% endif %}</button>
+                    <span class="match-team-name">{{ next_match.t1_name }}</span>
+                </div>
+                <span class="match-versus">VS</span>
+                <div class="match-team match-team--away">
+                    <button type="button" class="team-mark" style="background-color: {{ next_match.t2_color }}" onclick="openLogoModal('{{ next_match.t2_logo }}', '{{ next_match.t2_color }}')" aria-label="Zobrazit logo týmu {{ next_match.t2_name }}">{% if next_match.t2_logo and 'static' in next_match.t2_logo %}<img src="{{ next_match.t2_logo }}" alt="">{% else %}<span>{{ next_match.t2_logo }}</span>{% endif %}</button>
+                    <span class="match-team-name">{{ next_match.t2_name }}</span>
+                </div>
+            </div>
+            <div class="match-details">
+                <a href="/tournament/{{ next_match.t_id }}" class="text-orange-400">{{ next_match.tr_name }}</a>
+                <span class="flex items-center gap-3">{% if next_match.match_time %}<span class="flex items-center gap-1"><i data-lucide="clock-3" class="w-3 h-3"></i> {{ next_match.match_time }}</span>{% endif %}{% if next_match.pitch %}<span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> {{ next_match.pitch }}</span>{% endif %}</span>
+            </div>
+        </article>
+    </section>
+    {% endif %}
+
+    {% if active_tourneys %}
+    <section aria-labelledby="owned-events-title">
+        <div class="section-heading">
+            <div><p class="section-kicker"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Organizuješ</p><h2 id="owned-events-title" class="section-title">Moje turnaje</h2></div>
+            <a href="/seasons" class="section-link">Všechny <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></a>
+        </div>
+        <div class="event-grid">
+            {% for t in active_tourneys %}
+            <a href="/tournament/{{ t.id }}" class="tournament-card event-card">
+                <div class="event-card-media">
+                    <img src="{{ t.banner or web_graphic }}" alt="Banner turnaje {{ t.name }}" loading="lazy" decoding="async" class="object-cover" onerror="this.onerror=null;this.src='{{ web_graphic }}';">
+                    <div class="event-badges"><span class="event-status event-status--live"><i data-lucide="circle-dot" class="w-3 h-3"></i> {{ t.status }}</span></div>
+                </div>
+                <div class="event-card-body">
+                    <h3 class="event-card-title">{{ t.name }}</h3>
+                    <div class="event-meta"><span><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> {{ format_date_cz(t.start_date) }}</span><span><i data-lucide="users" class="w-3.5 h-3.5"></i> {{ t.registered_teams }}/{{ t.max_teams }} týmů</span></div>
+                    <div class="event-card-footer"><span class="event-card-hint">Spravovat turnaj</span><span class="event-card-arrow"><i data-lucide="arrow-up-right" class="w-4 h-4"></i></span></div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if participating_tourneys %}
+    <section aria-labelledby="participating-events-title">
+        <div class="section-heading">
+            <div><p class="section-kicker" style="color:#a78bfa"><i data-lucide="swords" class="w-3.5 h-3.5"></i> Soutěžíš</p><h2 id="participating-events-title" class="section-title">Účastním se</h2></div>
+        </div>
+        <div class="event-grid">
+            {% for t in participating_tourneys %}
+            <a href="/view/{{ t.id }}" class="tournament-card event-card">
+                <div class="event-card-media">
+                    <img src="{{ t.banner or web_graphic }}" alt="Banner turnaje {{ t.name }}" loading="lazy" decoding="async" class="object-cover" onerror="this.onerror=null;this.src='{{ web_graphic }}';">
+                    <div class="event-badges"><span class="event-status"><i data-lucide="activity" class="w-3 h-3"></i> {{ t.status }}</span></div>
+                </div>
+                <div class="event-card-body">
+                    <h3 class="event-card-title">{{ t.name }}</h3>
+                    <div class="event-meta"><span><i data-lucide="user" class="w-3.5 h-3.5"></i> {{ t.username }}</span><span><i data-lucide="users" class="w-3.5 h-3.5"></i> {{ t.registered_teams }}/{{ t.max_teams }} týmů</span></div>
+                    <div class="event-card-footer"><span class="event-card-hint">Otevřít turnaj</span><span class="event-card-arrow"><i data-lucide="arrow-up-right" class="w-4 h-4"></i></span></div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if joinable_public_tourneys %}
+    <section aria-labelledby="open-events-title">
+        <div class="section-heading">
+            <div><p class="section-kicker" style="color:#4ade80"><i data-lucide="radar" class="w-3.5 h-3.5"></i> Open lobby</p><h2 id="open-events-title" class="section-title">Volné turnaje</h2></div>
+        </div>
+        <div class="event-grid">
+            {% for t in joinable_public_tourneys %}
+            <a href="/join/{{ t.join_token }}" class="tournament-card event-card">
+                <div class="event-card-media">
+                    <img src="{{ t.banner or web_graphic }}" alt="Banner turnaje {{ t.name }}" loading="lazy" decoding="async" class="object-cover" onerror="this.onerror=null;this.src='{{ web_graphic }}';">
+                    <div class="event-badges"><span class="event-status event-status--open"><i data-lucide="log-in" class="w-3 h-3"></i> Registrace</span></div>
+                </div>
+                <div class="event-card-body">
+                    <h3 class="event-card-title">{{ t.name }}</h3>
+                    <div class="event-meta"><span><i data-lucide="user" class="w-3.5 h-3.5"></i> {{ t.username }}</span><span><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> {{ format_date_cz(t.start_date) }}</span><span><i data-lucide="users" class="w-3.5 h-3.5"></i> {{ t.registered_teams }}/{{ t.max_teams }}</span></div>
+                    <div class="event-card-footer"><span class="event-card-hint" style="color:#4ade80">Připojit tým</span><span class="event-card-arrow"><i data-lucide="arrow-up-right" class="w-4 h-4"></i></span></div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if not invitations and not next_match and not active_tourneys and not participating_tourneys and not joinable_public_tourneys %}
+    <section class="catalog-empty">
+        <div><span class="metric-icon mx-auto"><i data-lucide="trophy" class="w-5 h-5"></i></span><h2 class="section-title mt-4">Začni prvním turnajem</h2><p class="screen-subtitle mx-auto">Vytvoření zabere jen chvilku. Týmy můžeš pozvat později.</p><a href="/create" class="featured-action featured-action--primary mt-5"><i data-lucide="plus" class="w-4 h-4"></i> Vytvořit turnaj</a></div>
+    </section>
+    {% endif %}
 </div>"""
 
 ACCOUNT_HTML = """<div class="max-w-md mx-auto w-full">{% if current_user %}
@@ -748,30 +1541,54 @@ CREATE_HTML = """<div class="max-w-xl mx-auto py-6 sm:py-8 text-center w-full">
 </div>
 <script>document.getElementById('tournament-form').onsubmit = function(e) { const isAi = document.querySelector('input[name="banner_type"]:checked').value === 'ai'; {% if not current_user.is_pro %} if (isAi) { e.preventDefault(); alert("AI Banner vyžaduje PRO Premium"); return; } {% endif %} const btn = document.getElementById('submit-btn'); if(isAi) { btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mr-2"></i> Generuji AI Banner (až 30s)...'; } else { btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin inline-block mr-2"></i> Ukládám...'; } btn.classList.add('opacity-80', 'pointer-events-none'); lucide.createIcons(); };</script>"""
 
-SEASONS_HTML = """<div class="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-    <div class="p-3 bg-blue-600/20 rounded-2xl border border-blue-500/30 text-blue-500 inline-block w-fit"><i data-lucide="archive" class="w-6 h-6 sm:w-8 sm:h-8"></i></div>
-    <div><h2 class="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter leading-none theme-text-main">Archiv turnajů</h2><p class="text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Všechny moje sezóny</p></div>
-</div>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-{% for t in tournaments %}
-    <div class="tournament-card navy-card overflow-hidden flex flex-col relative group hover:border-blue-500/30 transition-all">
-        <div class="tournament-media h-32 sm:h-36 bg-slate-950 border-b border-white/5 overflow-hidden">
-            <img src="{{ t.banner or web_graphic }}" alt="Banner turnaje {{ t.name }}" loading="lazy" decoding="async" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='{{ web_graphic }}';">
+SEASONS_HTML = """<div class="tournament-catalog space-y-6 sm:space-y-8">
+    <header class="catalog-header">
+        <div>
+            <p class="screen-eyebrow"><i data-lucide="layers-3" class="w-3.5 h-3.5"></i> Tournament library</p>
+            <h1 class="screen-title">Moje <span>turnaje</span></h1>
+            <p class="screen-subtitle">Správa všech rozehraných i dokončených sezón.</p>
         </div>
-        <form action="/tournament/{{ t.id }}/delete" method="POST" class="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 bg-slate-950/70 backdrop-blur-sm rounded-lg" onsubmit="event.preventDefault(); openModal('Opravdu smazat turnaj ze systému?', this);">
-            <button type="submit" class="text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-        </form>
-        <div class="p-5 sm:p-6 flex flex-col flex-1">
-            <div class="mb-5 sm:mb-6 pr-6">
-                <span class="text-[8px] sm:text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 inline-block mb-2">Status: {{ t.status }}</span>
-                <h3 class="font-black text-lg sm:text-xl leading-tight truncate theme-text-main">{{ t.name }}</h3>
-            </div>
-            <div class="flex gap-2 border-t border-white/5 pt-4 mt-auto">
-                <a href="/tournament/{{ t.id }}" class="flex-1 bg-slate-800 text-center py-3 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-slate-700 transition-colors theme-text-main"><i data-lucide="shield-check" class="w-3 h-3 sm:w-4 sm:h-4 text-blue-500"></i> Spravovat</a>
-            </div>
-        </div>
+        <a href="/create" class="catalog-create" aria-label="Vytvořit nový turnaj"><i data-lucide="plus" class="w-4 h-4"></i><span>Nový turnaj</span></a>
+    </header>
+
+    <div class="catalog-summary">
+        <span class="catalog-summary-icon"><i data-lucide="trophy" class="w-5 h-5"></i></span>
+        <div><strong class="block text-xl font-black italic leading-none theme-text-main">{{ tournaments|length }}</strong><span class="text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Turnajů v archivu</span></div>
     </div>
-{% endfor %}
+
+    {% if tournaments %}
+    <div class="event-grid event-grid--catalog">
+        {% for t in tournaments %}
+        <article class="tournament-card event-card">
+            <div class="event-card-media">
+                <img src="{{ t.banner or web_graphic }}" alt="Banner turnaje {{ t.name }}" loading="lazy" decoding="async" class="object-cover" onerror="this.onerror=null;this.src='{{ web_graphic }}';">
+                <div class="event-badges">
+                    <span class="event-status {% if t.status == 'active' %}event-status--live{% endif %}"><i data-lucide="{% if t.status == 'active' %}radio{% elif t.status == 'finished' %}check-circle-2{% else %}clock-3{% endif %}" class="w-3 h-3"></i> {{ t.status }}</span>
+                    <span class="event-visibility"><i data-lucide="{% if t.is_public %}globe-2{% else %}lock-keyhole{% endif %}" class="w-3 h-3"></i> {% if t.is_public %}Veřejný{% else %}Privátní{% endif %}</span>
+                </div>
+            </div>
+            <div class="event-card-body">
+                <h2 class="event-card-title">{{ t.name }}</h2>
+                <div class="event-meta"><span><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i> {{ format_date_cz(t.start_date) }}</span><span><i data-lucide="users" class="w-3.5 h-3.5"></i> {{ t.registered_teams }}/{{ t.max_teams }} týmů</span></div>
+                <div class="mt-4">
+                    <div class="capacity-row"><span>Obsazenost</span><span>{{ t.registered_teams }} / {{ t.max_teams }}</span></div>
+                    <div class="capacity-track" role="progressbar" aria-label="Obsazenost turnaje {{ t.name }}" aria-valuemin="0" aria-valuemax="{{ t.max_teams }}" aria-valuenow="{{ t.registered_teams }}"><div class="capacity-fill" style="width: {{ ((t.registered_teams / t.max_teams) * 100)|round|int if t.max_teams else 0 }}%"></div></div>
+                </div>
+                <div class="event-card-actions">
+                    <a href="/tournament/{{ t.id }}" class="event-manage"><i data-lucide="settings-2" class="w-4 h-4"></i> Spravovat</a>
+                    <form action="/tournament/{{ t.id }}/delete" method="POST" onsubmit="event.preventDefault(); openModal('Opravdu smazat turnaj ze systému?', this);">
+                        <button type="submit" class="event-delete" aria-label="Smazat turnaj {{ t.name }}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </form>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <section class="catalog-empty">
+        <div><span class="metric-icon mx-auto"><i data-lucide="trophy" class="w-5 h-5"></i></span><h2 class="section-title mt-4">Zatím bez turnajů</h2><p class="screen-subtitle mx-auto">Vytvoř první sezónu a pozvi svoje týmy.</p><a href="/create" class="featured-action featured-action--primary mt-5"><i data-lucide="plus" class="w-4 h-4"></i> Vytvořit turnaj</a></div>
+    </section>
+    {% endif %}
 </div>"""
 
 HOF_HTML = """<div class="max-w-2xl mx-auto">
